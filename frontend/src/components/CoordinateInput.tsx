@@ -3,7 +3,10 @@ import { useStore } from '../store'
 import { normalizeText, uploadCoordinateFile, getErrorMessage } from '../api/client'
 
 export default function CoordinateInput() {
-  const { t, setNormalizeResult, clearAll, points } = useStore()
+  const {
+    t, setNormalizeResult, clearAll, points,
+    mapPickMode, setMapPickMode,
+  } = useStore()
   const [text, setText] = useState('')
   const [resolveUrls, setResolveUrls] = useState(true)
   const [loading, setLoading] = useState(false)
@@ -51,51 +54,84 @@ export default function CoordinateInput() {
       <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">
         {t('coordinateInput')}
       </h2>
-      <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder={t('inputPlaceholder')}
-        rows={6}
-        className="w-full text-sm rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 p-2 font-mono resize-y outline-none focus:ring-2 focus:ring-brand"
-      />
-      <label className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
-        <input
-          type="checkbox"
-          checked={resolveUrls}
-          onChange={(e) => setResolveUrls(e.target.checked)}
-        />
-        {t('resolveUrls')}
-      </label>
-      <div className="flex flex-col gap-2">
+
+      {/* Input method switch */}
+      <div className="flex rounded overflow-hidden border border-gray-300 dark:border-gray-600 text-xs">
         <button
-          onClick={handleNormalize}
-          disabled={loading}
-          className="bg-brand hover:bg-brand-light text-white text-sm rounded px-3 py-2 disabled:opacity-50"
+          onClick={() => setMapPickMode(false)}
+          className={
+            'flex-1 py-1.5 font-medium ' +
+            (!mapPickMode ? 'bg-brand text-white' : 'text-gray-600 dark:text-gray-300')
+          }
         >
-          {loading ? t('loading') : t('normalize')}
+          {t('methodText')}
         </button>
         <button
-          onClick={() => fileRef.current?.click()}
-          disabled={loading}
-          className="border border-brand text-brand dark:text-brand-light text-sm rounded px-3 py-2 hover:bg-brand/10"
+          onClick={() => setMapPickMode(true)}
+          className={
+            'flex-1 py-1.5 font-medium ' +
+            (mapPickMode ? 'bg-brand text-white' : 'text-gray-600 dark:text-gray-300')
+          }
         >
-          {t('uploadFile')}
+          📍 {t('methodMap')}
         </button>
-        <button
-          onClick={handleClear}
-          disabled={loading || (text.length === 0 && points.length === 0)}
-          className="border border-red-400 text-red-600 dark:text-red-400 text-sm rounded px-3 py-2 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-40"
-        >
-          🗑 {t('clear')}
-        </button>
-        <input
-          ref={fileRef}
-          type="file"
-          accept=".txt,.csv,.xlsx,.xls"
-          className="hidden"
-          onChange={handleFile}
-        />
       </div>
+
+      {mapPickMode ? (
+        <div className="rounded bg-blue-50 dark:bg-gray-800 p-2 text-xs text-gray-700 dark:text-gray-200">
+          {t('mapPickHint')}
+        </div>
+      ) : (
+        <>
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder={t('inputPlaceholder')}
+            rows={6}
+            className="w-full text-sm rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 p-2 font-mono resize-y outline-none focus:ring-2 focus:ring-brand"
+          />
+          <label className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+            <input
+              type="checkbox"
+              checked={resolveUrls}
+              onChange={(e) => setResolveUrls(e.target.checked)}
+            />
+            {t('resolveUrls')}
+          </label>
+          <div className="flex flex-col gap-2">
+            <button
+              onClick={handleNormalize}
+              disabled={loading}
+              className="bg-brand hover:bg-brand-light text-white text-sm rounded px-3 py-2 disabled:opacity-50"
+            >
+              {loading ? t('loading') : t('normalize')}
+            </button>
+            <button
+              onClick={() => fileRef.current?.click()}
+              disabled={loading}
+              className="border border-brand text-brand dark:text-brand-light text-sm rounded px-3 py-2 hover:bg-brand/10"
+            >
+              {t('uploadFile')}
+            </button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".txt,.csv,.xlsx,.xls"
+              className="hidden"
+              onChange={handleFile}
+            />
+          </div>
+        </>
+      )}
+
+      <button
+        onClick={handleClear}
+        disabled={loading || (text.length === 0 && points.length === 0)}
+        className="w-full border border-red-400 text-red-600 dark:text-red-400 text-sm rounded px-3 py-2 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-40"
+      >
+        🗑 {t('clear')}
+      </button>
+
       {error && <p className="text-xs text-red-600">{error}</p>}
     </div>
   )

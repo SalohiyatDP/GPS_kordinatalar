@@ -79,9 +79,9 @@ export default function ResultsPanel() {
           {t('exports')}
         </h3>
         <div className="grid grid-cols-2 gap-1.5">
-          <ExportBtn label="Points XLSX" onClick={() => doExport('xlsx', 'points')} />
-          <ExportBtn label="Points KMZ" onClick={() => doExport('kmz', 'points')} />
-          <ExportBtn label="Polygon KMZ" onClick={() => doExport('kmz', 'polygon')} />
+          <ExportBtn label={`${t('wordPoints')} XLSX`} onClick={() => doExport('xlsx', 'points')} />
+          <ExportBtn label={`${t('wordPoints')} KMZ`} onClick={() => doExport('kmz', 'points')} />
+          <ExportBtn label={`${t('wordPolygon')} KMZ`} onClick={() => doExport('kmz', 'polygon')} />
           <ExportBtn label="GeoJSON" onClick={() => doExport('geojson', 'polygon')} />
           <ExportBtn label="PDF" onClick={() => doExport('pdf', 'polygon')} />
         </div>

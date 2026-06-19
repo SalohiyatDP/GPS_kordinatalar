@@ -9,6 +9,7 @@ import {
   TileLayer,
   Tooltip,
   useMap,
+  useMapEvents,
 } from 'react-leaflet'
 import L from 'leaflet'
 import { useStore } from '../store'
@@ -23,8 +24,9 @@ const COLORS = {
 
 function FitBounds() {
   const map = useMap()
-  const { points, layerGeoJSON } = useStore()
+  const { points, layerGeoJSON, mapPickMode } = useStore()
   useEffect(() => {
+    if (mapPickMode) return // don't auto-recenter while picking points manually
     const latlngs = points.map((p) => [p.latitude, p.longitude]) as [number, number][]
     if (latlngs.length > 0) {
       map.fitBounds(L.latLngBounds(latlngs).pad(0.3))
@@ -37,13 +39,28 @@ function FitBounds() {
         /* ignore */
       }
     }
-  }, [points, layerGeoJSON, map])
+  }, [points, layerGeoJSON, map, mapPickMode])
+  return null
+}
+
+function MapClickHandler({
+  active,
+  onPick,
+}: {
+  active: boolean
+  onPick: (lat: number, lon: number) => void
+}) {
+  useMapEvents({
+    click(e) {
+      if (active) onPick(e.latlng.lat, e.latlng.lng)
+    },
+  })
   return null
 }
 
 export default function MapView() {
   const { points, polygonGeoJSON, layerGeoJSON, contours, theme,
-    uzkadGeoJSON, uzkadResults } = useStore()
+    uzkadGeoJSON, uzkadResults, t, mapPickMode, addPointLatLng } = useStore()
 
   const polygonLatLngs = useMemo(
     () => points.map((p) => [p.latitude, p.longitude] as [number, number]),
@@ -59,23 +76,24 @@ export default function MapView() {
     <MapContainer
       center={[41.3111, 69.2797]}
       zoom={6}
-      className="h-full w-full"
+      className={'h-full w-full' + (mapPickMode ? ' cursor-crosshair' : '')}
       scrollWheelZoom
     >
+      <MapClickHandler active={mapPickMode} onPick={addPointLatLng} />
       <LayersControl position="topright">
-        <LayersControl.BaseLayer checked name="Base Map">
+        <LayersControl.BaseLayer checked name={t('layerBaseMap')}>
           <TileLayer
             url={tileUrl}
             attribution='&copy; OpenStreetMap contributors'
           />
         </LayersControl.BaseLayer>
-        <LayersControl.BaseLayer name="Satellite">
+        <LayersControl.BaseLayer name={t('layerSatellite')}>
           <TileLayer
             url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
             attribution="&copy; Esri"
           />
         </LayersControl.BaseLayer>
-        <LayersControl.BaseLayer name="Google Streets">
+        <LayersControl.BaseLayer name={t('layerGoogleStreets')}>
           <TileLayer
             url="https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
             subdomains={['mt0', 'mt1', 'mt2', 'mt3']}
@@ -83,7 +101,7 @@ export default function MapView() {
             maxZoom={21}
           />
         </LayersControl.BaseLayer>
-        <LayersControl.BaseLayer name="Google Satellite">
+        <LayersControl.BaseLayer name={t('layerGoogleSatellite')}>
           <TileLayer
             url="https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
             subdomains={['mt0', 'mt1', 'mt2', 'mt3']}
@@ -91,7 +109,7 @@ export default function MapView() {
             maxZoom={21}
           />
         </LayersControl.BaseLayer>
-        <LayersControl.BaseLayer name="Google Hybrid">
+        <LayersControl.BaseLayer name={t('layerGoogleHybrid')}>
           <TileLayer
             url="https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
             subdomains={['mt0', 'mt1', 'mt2', 'mt3']}
@@ -102,7 +120,7 @@ export default function MapView() {
 
         {/* Contour layer (uploaded) */}
         {layerGeoJSON && (
-          <LayersControl.Overlay checked name="Contours">
+          <LayersControl.Overlay checked name={t('overlayContours')}>
             <GeoJSON
               data={layerGeoJSON}
               style={{ color: '#64748b', weight: 1, fillOpacity: 0.05 }}
@@ -112,7 +130,7 @@ export default function MapView() {
 
         {/* Intersection results */}
         {contours.length > 0 && (
-          <LayersControl.Overlay checked name="Intersections">
+          <LayersControl.Overlay checked name={t('overlayIntersections')}>
             <GeoJSON
               key={JSON.stringify(contours.map((c) => c.code))}
               data={
@@ -145,7 +163,7 @@ export default function MapView() {
 
         {/* UZKAD base layer */}
         {uzkadGeoJSON && (
-          <LayersControl.Overlay checked name="UZKAD">
+          <LayersControl.Overlay checked name={t('overlayUzkad')}>
             <GeoJSON
               data={uzkadGeoJSON}
               style={{ color: '#7c3aed', weight: 1, fillOpacity: 0.04,
@@ -156,7 +174,7 @@ export default function MapView() {
 
         {/* UZKAD analysis (cadastral parcels + vacant) */}
         {uzkadResults.length > 0 && (
-          <LayersControl.Overlay checked name="UZKAD natija">
+          <LayersControl.Overlay checked name={t('overlayUzkadResult')}>
             <GeoJSON
               key={JSON.stringify(uzkadResults.map((c) => c.code))}
               data={

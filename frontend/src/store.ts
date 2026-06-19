@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { Lang } from './i18n/translations'
 import { TRANSLATIONS } from './i18n/translations'
+import { pairDms } from './utils/dms'
 import type {
   AreaResult,
   ContourResult,
@@ -24,6 +25,11 @@ interface AppState {
   setNormalizeResult: (p: Point[], invalid: Point[], dups: number) => void
   movePoint: (index: number, dir: -1 | 1) => void
   deletePoint: (index: number) => void
+
+  // input method: pick points by clicking the map
+  mapPickMode: boolean
+  setMapPickMode: (v: boolean) => void
+  addPointLatLng: (lat: number, lon: number) => void
 
   // geometry
   area: AreaResult | null
@@ -107,6 +113,20 @@ export const useStore = create<AppState>((set, get) => ({
   },
   deletePoint: (index) => {
     const pts = get().points.filter((_, i) => i !== index)
+    set({ points: renumber(pts) })
+  },
+
+  mapPickMode: false,
+  setMapPickMode: (v) => set({ mapPickMode: v }),
+  addPointLatLng: (lat, lon) => {
+    const pts = [...get().points, {
+      point_number: 0,
+      latitude: lat,
+      longitude: lon,
+      dms: pairDms(lat, lon),
+      status: 'valid' as const,
+      error: null,
+    }]
     set({ points: renumber(pts) })
   },
 

@@ -360,7 +360,7 @@ function ResultsBlock({
               onClick={() => report(f)}
               className="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 hover:bg-brand hover:text-white"
             >
-              Analysis.{f}
+              {t('wordReport')} {f.toUpperCase()}
             </button>
           ))}
         </div>
