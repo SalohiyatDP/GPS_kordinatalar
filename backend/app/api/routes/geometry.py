@@ -75,7 +75,7 @@ def export(req: ExportRequest):
         polygon = geo.build_polygon([(p["latitude"], p["longitude"]) for p in points])
         area = geo.calculate_area(polygon).to_dict()
         perimeter = geo.calculate_perimeter(polygon).to_dict()
-        data = exporters.to_pdf(points, area, perimeter, title="Coordinate Report")
+        data = exporters.to_pdf(points, area, perimeter, title="Koordinatalar hisoboti")
         filename = "report.pdf"
     else:  # pragma: no cover
         raise HTTPException(status_code=400, detail="Unsupported format")

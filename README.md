@@ -53,8 +53,14 @@ docker compose up --build
 
 Toʻliq koʻrsatma uchun [docs/INSTALL.md](docs/INSTALL.md) ga qarang.
 
-**Talablar:** Python 3.10+ va Node.js 18+ oʻrnatilgan boʻlishi kerak.
+**Talablar:**
+[Python 3.10+](https://www.python.org/downloads/) va
+[Node.js 18+](https://nodejs.org/en/download) oʻrnatilgan boʻlishi kerak.
 Backend va frontend uchun **alohida ikkita terminal** oching.
+
+> 💡 **Windows uchun eng oson yoʻl:** loyiha papkasidagi **`start.bat`** faylini
+> ikki marta bosing — u backend va frontendni avtomatik oʻrnatadi, ishga
+> tushiradi va brauzerda <http://localhost:5173> ni ochadi.
 
 ### 🪟 Windows (PowerShell)
 

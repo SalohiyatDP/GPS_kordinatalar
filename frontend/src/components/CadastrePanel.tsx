@@ -134,6 +134,7 @@ function KonturSection() {
           results={contours}
           summary={summary}
           idLabel={t('contour')}
+          reportLabel="Kontur"
         />
       )}
     </>
@@ -224,6 +225,7 @@ function UzkadSection() {
           results={uzkadResults}
           summary={uzkadSummary}
           idLabel={t('cadastralNumber')}
+          reportLabel="Kadastr"
         />
       )}
     </>
@@ -289,11 +291,12 @@ function statusBadge(status: string, t: (k: string) => string) {
 }
 
 function ResultsBlock({
-  results, summary, idLabel,
+  results, summary, idLabel, reportLabel,
 }: {
   results: ContourResult[]
   summary: string
   idLabel: string
+  reportLabel: string
 }) {
   const { t, points } = useStore()
   const [error, setError] = useState<string | null>(null)
@@ -301,11 +304,12 @@ function ResultsBlock({
   async function report(format: string) {
     try {
       await generateReport(
-        'Cadastre Analysis',
+        'Kadastr tahlili',
         points,
         results.map(({ geometry, ...rest }) => rest),
         summary,
         format,
+        reportLabel,
       )
     } catch (err) {
       setError(getErrorMessage(err))

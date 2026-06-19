@@ -75,6 +75,30 @@ export default function MapView() {
             attribution="&copy; Esri"
           />
         </LayersControl.BaseLayer>
+        <LayersControl.BaseLayer name="Google Streets">
+          <TileLayer
+            url="https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
+            subdomains={['mt0', 'mt1', 'mt2', 'mt3']}
+            attribution="&copy; Google"
+            maxZoom={21}
+          />
+        </LayersControl.BaseLayer>
+        <LayersControl.BaseLayer name="Google Satellite">
+          <TileLayer
+            url="https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
+            subdomains={['mt0', 'mt1', 'mt2', 'mt3']}
+            attribution="&copy; Google"
+            maxZoom={21}
+          />
+        </LayersControl.BaseLayer>
+        <LayersControl.BaseLayer name="Google Hybrid">
+          <TileLayer
+            url="https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
+            subdomains={['mt0', 'mt1', 'mt2', 'mt3']}
+            attribution="&copy; Google"
+            maxZoom={21}
+          />
+        </LayersControl.BaseLayer>
 
         {/* Contour layer (uploaded) */}
         {layerGeoJSON && (

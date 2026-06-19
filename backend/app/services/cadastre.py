@@ -343,11 +343,11 @@ def _build_summary(codes: list[str], *, id_field: str = "contour",
         return base
 
     if not codes:
-        return "The polygon does not intersect any contour."
+        return "Poligon hech qanday kontur bilan kesishmaydi."
     joined = ", ".join(codes)
     return (
-        f"The polygon intersects: {joined}. "
-        f'Where "q" means only part of the contour lies within the polygon.'
+        f"Poligon quyidagi konturlar bilan kesishadi: {joined}. "
+        f'"q" harfi konturning faqat bir qismi poligon ichida ekanligini bildiradi.'
     )
 
 

@@ -34,15 +34,24 @@ def test_cyrillic_font_bundled_and_registered():
 def test_xlsx_uses_code_and_hectares():
     data = ex.analysis_to_xlsx(POINTS, AREA, PERI, CONTOURS, "20q")
     wb = load_workbook(io.BytesIO(data))
-    ws = wb["Contours"]
+    ws = wb["Tahlil"]
     headers = [c.value for c in ws[1]]
-    assert "Contour Area (ha)" in headers
-    assert "Intersection Area (ha)" in headers
+    assert "Maydon (ga)" in headers
+    assert "Kesishuv (ga)" in headers
     row = [c.value for c in ws[2]]
     assert row[0] == "20q"                       # code with q
     # 267301.89 m² -> 26.7302 ha
-    ha_idx = headers.index("Contour Area (ha)")
+    ha_idx = headers.index("Maydon (ga)")
     assert abs(row[ha_idx] - 26.7302) < 0.01
+
+
+def test_xlsx_uzkad_uses_kadastr_label():
+    data = ex.analysis_to_xlsx(POINTS, AREA, PERI, CONTOURS, "20q",
+                               id_label="Kadastr")
+    wb = load_workbook(io.BytesIO(data))
+    ws = wb["Tahlil"]
+    headers = [c.value for c in ws[1]]
+    assert headers[0] == "Kadastr"
 
 
 def test_pdf_generated():

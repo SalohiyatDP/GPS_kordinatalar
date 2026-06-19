@@ -2,12 +2,17 @@
 
 ## Prerequisites
 
-- **Python** 3.10–3.13
-- **Node.js** 18+ (20/22 recommended)
-- (Optional) **Docker** + Docker Compose
+- **[Python 3.10–3.13](https://www.python.org/downloads/)**
+- **[Node.js 18+](https://nodejs.org/en/download)** (20/22 recommended)
+- (Optional) **[Docker](https://www.docker.com/products/docker-desktop)** + Docker Compose
 
 The Python GIS dependencies (GeoPandas, Shapely, PyProj, Fiona, Pyogrio) ship as
 prebuilt wheels, so no system GDAL installation is normally required.
+
+> **Windows one-click:** double-click **`start.bat`** in the project root. It
+> creates the backend virtual environment, installs dependencies for both
+> backend and frontend, starts both servers, and opens the browser
+> automatically.
 
 ---
 

@@ -63,12 +63,13 @@ class ContourEntry(BaseModel):
 
 
 class ReportRequest(BaseModel):
-    name: str = "Cadastre Analysis"
+    name: str = "Kadastr tahlili"
     points: list[PointInput]
     contours: list[dict] = []
     summary: str = ""
     format: str = Field("pdf", description="xlsx|pdf|kmz|geojson")
     map_image_base64: str | None = None
+    id_label: str = Field("Kontur", description="Tahlil ustuni sarlavhasi: Kontur yoki Kadastr")
 
 
 class ProjectCreate(BaseModel):

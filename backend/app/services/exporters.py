@@ -71,12 +71,17 @@ def _style_header(ws, ncols: int):
         cell.alignment = Alignment(horizontal="center", vertical="center")
 
 
+def _status_uz(status: str) -> str:
+    return {"Full": "Toʻliq", "Partial": "Qisman", "Vacant": "Boʻsh"}.get(
+        status, status or "")
+
+
 def points_to_xlsx(points: list[dict]) -> bytes:
-    """points.xlsx — Point Number, Latitude, Longitude, DMS."""
+    """points.xlsx — Nuqta raqami, Kenglik, Uzunlik, DMS."""
     wb = Workbook()
     ws = wb.active
-    ws.title = "Points"
-    headers = ["Point Number", "Latitude", "Longitude", "DMS"]
+    ws.title = "Nuqtalar"
+    headers = ["Nuqta №", "Kenglik", "Uzunlik", "DMS"]
     ws.append(headers)
     _style_header(ws, len(headers))
     for p in points:
@@ -94,13 +99,13 @@ def points_to_xlsx(points: list[dict]) -> bytes:
 
 def analysis_to_xlsx(points: list[dict], area: dict, perimeter: dict,
                      contours: list[dict] | None = None,
-                     summary: str = "") -> bytes:
-    """Analysis.xlsx — full cadastral report workbook (multiple sheets)."""
+                     summary: str = "", id_label: str = "Kontur") -> bytes:
+    """Analysis.xlsx — toʻliq kadastr hisobot kitobi (bir nechta varaq)."""
     wb = Workbook()
 
     ws = wb.active
-    ws.title = "Coordinates"
-    headers = ["Point Number", "Latitude", "Longitude", "DMS"]
+    ws.title = "Koordinatalar"
+    headers = ["Nuqta №", "Kenglik", "Uzunlik", "DMS"]
     ws.append(headers)
     _style_header(ws, len(headers))
     for p in points:
@@ -108,26 +113,25 @@ def analysis_to_xlsx(points: list[dict], area: dict, perimeter: dict,
     for i, w in enumerate([14, 16, 16, 34], start=1):
         ws.column_dimensions[ws.cell(row=1, column=i).column_letter].width = w
 
-    ws2 = wb.create_sheet("Summary")
-    ws2.append(["Metric", "Value"])
+    ws2 = wb.create_sheet("Xulosa")
+    ws2.append(["Koʻrsatkich", "Qiymat"])
     _style_header(ws2, 2)
-    ws2.append(["Area (m²)", area.get("square_meters")])
-    ws2.append(["Area (hectares)", area.get("hectares")])
-    ws2.append(["Area (km²)", area.get("square_kilometers")])
-    ws2.append(["Area (sotix)", area.get("sotix")])
-    ws2.append(["Perimeter (m)", perimeter.get("meters")])
-    ws2.append(["Perimeter (km)", perimeter.get("kilometers")])
-    ws2.append(["Generated", datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")])
+    ws2.append(["Maydon (m²)", area.get("square_meters")])
+    ws2.append(["Maydon (gektar)", area.get("hectares")])
+    ws2.append(["Maydon (km²)", area.get("square_kilometers")])
+    ws2.append(["Maydon (sotix)", area.get("sotix")])
+    ws2.append(["Perimetr (m)", perimeter.get("meters")])
+    ws2.append(["Perimetr (km)", perimeter.get("kilometers")])
+    ws2.append(["Yaratilgan", datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")])
     if summary:
-        ws2.append(["Summary", summary])
+        ws2.append(["Xulosa", summary])
     ws2.column_dimensions["A"].width = 22
     ws2.column_dimensions["B"].width = 50
 
     if contours:
-        ws3 = wb.create_sheet("Contours")
-        c_headers = ["Contour", "Region", "District", "Massif", "MFY",
-                     "Contour Area (ha)", "Intersection Area (ha)",
-                     "Coverage %", "Status"]
+        ws3 = wb.create_sheet("Tahlil")
+        c_headers = [id_label, "Viloyat", "Tuman", "Massiv", "MFY",
+                     "Maydon (ga)", "Kesishuv (ga)", "Qamrov %", "Holat"]
         ws3.append(c_headers)
         _style_header(ws3, len(c_headers))
         for c in contours:
@@ -140,9 +144,9 @@ def analysis_to_xlsx(points: list[dict], area: dict, perimeter: dict,
                 _to_ha(c.get("contour_area")),
                 _to_ha(c.get("intersection_area")),
                 c.get("coverage_percent"),
-                c.get("status"),
+                _status_uz(c.get("status")),
             ])
-        for i, w in enumerate([12, 16, 16, 16, 16, 18, 20, 12, 10], start=1):
+        for i, w in enumerate([16, 16, 16, 16, 16, 14, 14, 12, 10], start=1):
             ws3.column_dimensions[ws3.cell(row=1, column=i).column_letter].width = w
 
     return _wb_bytes(wb)
@@ -304,9 +308,9 @@ def to_geojson(points: list[dict], polygon_geojson: dict | None = None,
 
 def to_pdf(points: list[dict], area: dict, perimeter: dict,
            contours: list[dict] | None = None,
-           summary: str = "", title: str = "Cadastre Analysis Report",
-           map_image_png: bytes | None = None) -> bytes:
-    """Analysis.pdf — coordinate table, area, perimeter, optional map & contours."""
+           summary: str = "", title: str = "Kadastr tahlil hisoboti",
+           map_image_png: bytes | None = None, id_label: str = "Kontur") -> bytes:
+    """Analysis.pdf — koordinatalar jadvali, maydon, perimetr, xarita va tahlil."""
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=1.5 * cm,
                             bottomMargin=1.5 * cm, leftMargin=1.5 * cm,
@@ -319,7 +323,7 @@ def to_pdf(points: list[dict], area: dict, perimeter: dict,
 
     elements.append(Paragraph(title, styles["Title"]))
     elements.append(Paragraph(
-        f"Generated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}",
+        f"Yaratilgan: {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}",
         styles["Normal"]))
     elements.append(Spacer(1, 0.4 * cm))
 
@@ -333,8 +337,8 @@ def to_pdf(points: list[dict], area: dict, perimeter: dict,
             pass
 
     # Coordinate table.
-    elements.append(Paragraph("Coordinates", styles["Heading2"]))
-    data = [["#", "Latitude", "Longitude", "DMS"]]
+    elements.append(Paragraph("Koordinatalar", styles["Heading2"]))
+    data = [["#", "Kenglik", "Uzunlik", "DMS"]]
     for p in points:
         data.append([
             str(p["point_number"]),
@@ -348,14 +352,14 @@ def to_pdf(points: list[dict], area: dict, perimeter: dict,
     elements.append(Spacer(1, 0.4 * cm))
 
     # Area & perimeter.
-    elements.append(Paragraph("Geometry", styles["Heading2"]))
+    elements.append(Paragraph("Geometriya", styles["Heading2"]))
     geo = [
-        ["Area (m²)", f"{area.get('square_meters', 0):,.2f}"],
-        ["Area (hectares)", f"{area.get('hectares', 0):,.4f}"],
-        ["Area (km²)", f"{area.get('square_kilometers', 0):,.6f}"],
-        ["Area (sotix)", f"{area.get('sotix', 0):,.2f}"],
-        ["Perimeter (m)", f"{perimeter.get('meters', 0):,.2f}"],
-        ["Perimeter (km)", f"{perimeter.get('kilometers', 0):,.4f}"],
+        ["Maydon (m²)", f"{area.get('square_meters', 0):,.2f}"],
+        ["Maydon (gektar)", f"{area.get('hectares', 0):,.4f}"],
+        ["Maydon (km²)", f"{area.get('square_kilometers', 0):,.6f}"],
+        ["Maydon (sotix)", f"{area.get('sotix', 0):,.2f}"],
+        ["Perimetr (m)", f"{perimeter.get('meters', 0):,.2f}"],
+        ["Perimetr (km)", f"{perimeter.get('kilometers', 0):,.4f}"],
     ]
     gtable = Table(geo, hAlign="LEFT", colWidths=[6 * cm, 8 * cm])
     gtable.setStyle(_table_style())
@@ -363,9 +367,9 @@ def to_pdf(points: list[dict], area: dict, perimeter: dict,
     elements.append(Spacer(1, 0.4 * cm))
 
     if contours:
-        elements.append(Paragraph("Contour Analysis", styles["Heading2"]))
-        cdata = [["Contour", "Region", "District", "Massif", "MFY",
-                  "Area (ha)", "Intersect (ha)", "Cov %", "Status"]]
+        elements.append(Paragraph("Tahlil natijalari", styles["Heading2"]))
+        cdata = [[id_label, "Viloyat", "Tuman", "Massiv", "MFY",
+                  "Maydon (ga)", "Kesishuv (ga)", "Qamrov %", "Holat"]]
         for c in contours:
             cdata.append([
                 str(c.get("code") or c.get("contour", "")),
@@ -376,7 +380,7 @@ def to_pdf(points: list[dict], area: dict, perimeter: dict,
                 f"{_to_ha(c.get('contour_area')):,.4f}",
                 f"{_to_ha(c.get('intersection_area')):,.4f}",
                 f"{c.get('coverage_percent', 0):.1f}",
-                str(c.get("status", "")),
+                _status_uz(c.get("status", "")),
             ])
         ctable = Table(cdata, hAlign="LEFT")
         ctable.setStyle(_table_style())
@@ -384,7 +388,7 @@ def to_pdf(points: list[dict], area: dict, perimeter: dict,
         elements.append(Spacer(1, 0.4 * cm))
 
     if summary:
-        elements.append(Paragraph("Summary", styles["Heading2"]))
+        elements.append(Paragraph("Xulosa", styles["Heading2"]))
         elements.append(Paragraph(summary, styles["Normal"]))
 
     doc.build(elements)

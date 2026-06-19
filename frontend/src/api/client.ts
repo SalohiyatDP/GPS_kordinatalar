@@ -114,6 +114,7 @@ export async function generateReport(
   contours: unknown[],
   summary: string,
   format: string,
+  idLabel = 'Kontur',
   mapImageBase64?: string,
 ): Promise<void> {
   const resp = await api.post(
@@ -124,6 +125,7 @@ export async function generateReport(
       contours,
       summary,
       format,
+      id_label: idLabel,
       map_image_base64: mapImageBase64,
     },
     { responseType: 'blob' },
