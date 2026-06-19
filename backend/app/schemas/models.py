@@ -54,6 +54,7 @@ class ContourEntry(BaseModel):
     region: str | None = None
     district: str | None = None
     massif: str | None = None
+    mfy: str | None = None
     land_type: str | None = None
     contour_area: float = 0
     intersection_area: float = 0

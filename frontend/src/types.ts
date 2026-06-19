@@ -39,6 +39,7 @@ export interface ContourResult {
   region: string | null
   district: string | null
   massif: string | null
+  mfy: string | null
   land_type: string | null
   contour_area: number
   intersection_area: number

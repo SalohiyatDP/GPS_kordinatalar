@@ -11,8 +11,9 @@ from app.services import cadastre
 REAL_COLUMNS = [
     "FID", "Kontur_raq", "Umumiy_may", "Haydalma_t", "Haydalma_1",
     "Dehqon_maj", "Boglar_ega", "Uzumzor_ma", "Tutzor", "Buz_yer_ot",
-    "Tomorqa", "Urmonzor", "Ariq_kanal", "Kol", "Tuproq", "MFY", "Maxsus",
-    "Tuman", "Viloyat", "Yagona_kon", "Dol_konta", "SHAPE_Leng", "SHAPE_Area",
+    "Tomorqa", "Urmonzor", "Ariq_kanal", "Kol", "Tuproq", "MFY", "Massiv",
+    "Maxsus", "Tuman", "Viloyat", "Yagona_kon", "Dol_konta",
+    "SHAPE_Leng", "SHAPE_Area",
 ]
 
 
@@ -24,6 +25,7 @@ def _make_real_layer():
     data["Viloyat"] = ["Farg'ona", "Farg'ona"]
     data["Tuman"] = ["Quvasoy", "Quvasoy"]
     data["MFY"] = ["Navbahor", "Navbahor"]
+    data["Massiv"] = ["Sharq", "Sharq"]
     data["Umumiy_may"] = [2.27, 0.85]
     gdf = gpd.GeoDataFrame(data, geometry=[c1, c2], crs="EPSG:4326")
     return cadastre._prepare_layer(gdf)
@@ -35,7 +37,8 @@ def test_resolves_truncated_uzbek_columns():
     assert cm["contour"] == "Kontur_raq"
     assert cm["region"] == "Viloyat"
     assert cm["district"] == "Tuman"
-    assert cm["massif"] == "MFY"
+    assert cm["massif"] == "Massiv"
+    assert cm["mfy"] == "MFY"
     assert cm["area_attr"] == "Umumiy_may"
 
 
@@ -48,6 +51,8 @@ def test_numeric_contour_rendered_without_decimal():
     assert "307" in by                       # not "307.0"
     assert by["307"]["code"] == "307"        # full
     assert by["307"]["region"] == "Farg'ona"
+    assert by["307"]["massif"] == "Sharq"
+    assert by["307"]["mfy"] == "Navbahor"
     assert by["38"]["code"] == "38q"         # partial
     assert analysis.summary_codes == ["38q", "307"]
 

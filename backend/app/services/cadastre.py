@@ -35,7 +35,8 @@ FULL_COVERAGE_THRESHOLD = 99.9
 _ATTRIBUTE_ALIASES = {
     "region": ["viloyat", "region", "oblast", "viloyati", "область"],
     "district": ["tuman", "tumani", "district", "rayon", "район"],
-    "massif": ["massiv", "massif", "mfy", "mahalla", "massivi", "массив"],
+    "massif": ["massiv", "massif", "massivi", "массив"],
+    "mfy": ["mfy", "mahalla", "mfy_nomi"],
     "contour": ["kontur_raqami", "kontur_raq", "kontur_no", "kontur", "contour",
                 "yagona_kon", "raqam", "номер"],
     "land_type": ["yer_turi", "yer_tur", "land_type", "toifa", "tip"],
@@ -180,6 +181,7 @@ def analyze_points(layer: ContourLayer,
                 "region": _val(layer.attr(match, "region")),
                 "district": _val(layer.attr(match, "district")),
                 "massif": _val(layer.attr(match, "massif")),
+                "mfy": _val(layer.attr(match, "mfy")),
                 "contour": _clean_contour(layer.attr(match, "contour")),
             })
         else:
@@ -188,7 +190,7 @@ def analyze_points(layer: ContourLayer,
                 "latitude": lat,
                 "longitude": lon,
                 "region": None, "district": None,
-                "massif": None, "contour": None,
+                "massif": None, "mfy": None, "contour": None,
             })
     return results
 
@@ -252,6 +254,7 @@ def analyze_polygon(layer: ContourLayer, polygon: Polygon,
             "region": _val(layer.attr(row, "region")),
             "district": _val(layer.attr(row, "district")),
             "massif": _val(layer.attr(row, "massif")),
+            "mfy": _val(layer.attr(row, "mfy")),
             "land_type": _val(layer.attr(row, "land_type")),
             "contour_area": round(contour_area, 2),
             "intersection_area": round(inter_area, 2),

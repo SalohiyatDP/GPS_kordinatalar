@@ -93,7 +93,7 @@ def analysis_to_xlsx(points: list[dict], area: dict, perimeter: dict,
 
     if contours:
         ws3 = wb.create_sheet("Contours")
-        c_headers = ["Contour", "Region", "District", "Massif",
+        c_headers = ["Contour", "Region", "District", "Massif", "MFY",
                      "Contour Area (m²)", "Intersection Area (m²)",
                      "Coverage %", "Status"]
         ws3.append(c_headers)
@@ -104,12 +104,13 @@ def analysis_to_xlsx(points: list[dict], area: dict, perimeter: dict,
                 c.get("region"),
                 c.get("district"),
                 c.get("massif"),
+                c.get("mfy"),
                 c.get("contour_area"),
                 c.get("intersection_area"),
                 c.get("coverage_percent"),
                 c.get("status"),
             ])
-        for i, w in enumerate([12, 16, 16, 16, 18, 20, 12, 10], start=1):
+        for i, w in enumerate([12, 16, 16, 16, 16, 18, 20, 12, 10], start=1):
             ws3.column_dimensions[ws3.cell(row=1, column=i).column_letter].width = w
 
     return _wb_bytes(wb)
@@ -306,7 +307,7 @@ def to_pdf(points: list[dict], area: dict, perimeter: dict,
 
     if contours:
         elements.append(Paragraph("Contour Analysis", styles["Heading2"]))
-        cdata = [["Contour", "Region", "District", "Massif",
+        cdata = [["Contour", "Region", "District", "Massif", "MFY",
                   "Area m²", "Intersect m²", "Cov %", "Status"]]
         for c in contours:
             cdata.append([
@@ -314,6 +315,7 @@ def to_pdf(points: list[dict], area: dict, perimeter: dict,
                 str(c.get("region", "")),
                 str(c.get("district", "")),
                 str(c.get("massif", "")),
+                str(c.get("mfy", "")),
                 f"{c.get('contour_area', 0):,.0f}",
                 f"{c.get('intersection_area', 0):,.0f}",
                 f"{c.get('coverage_percent', 0):.1f}",

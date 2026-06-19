@@ -112,6 +112,8 @@ export default function CadastrePanel() {
                 <tr>
                   <th className="px-1.5 py-1 text-left">{t('contour')}</th>
                   <th className="px-1.5 py-1 text-left">{t('district')}</th>
+                  <th className="px-1.5 py-1 text-left">{t('massif')}</th>
+                  <th className="px-1.5 py-1 text-left">{t('mfy')}</th>
                   <th className="px-1.5 py-1 text-right">{t('coverage')}</th>
                   <th className="px-1.5 py-1 text-center">{t('status')}</th>
                 </tr>
@@ -124,6 +126,8 @@ export default function CadastrePanel() {
                   >
                     <td className="px-1.5 py-1 font-mono font-semibold">{c.code}</td>
                     <td className="px-1.5 py-1">{c.district ?? '-'}</td>
+                    <td className="px-1.5 py-1">{c.massif ?? '-'}</td>
+                    <td className="px-1.5 py-1">{c.mfy ?? '-'}</td>
                     <td className="px-1.5 py-1 text-right font-mono">
                       {c.coverage_percent.toFixed(1)}%
                     </td>
