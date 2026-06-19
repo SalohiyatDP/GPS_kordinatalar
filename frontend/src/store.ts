@@ -37,13 +37,23 @@ interface AppState {
     centroid: [number, number],
   ) => void
 
-  // cadastre
+  // cadastre — kontur layer
   layerId: string | null
   layerGeoJSON: GeoJSON.FeatureCollection | null
   contours: ContourResult[]
   summary: string
   setLayer: (id: string, gj: GeoJSON.FeatureCollection | null) => void
   setAnalysis: (contours: ContourResult[], summary: string) => void
+  clearContourLayer: () => void
+
+  // cadastre — UZKAD layer
+  uzkadLayerId: string | null
+  uzkadGeoJSON: GeoJSON.FeatureCollection | null
+  uzkadResults: ContourResult[]
+  uzkadSummary: string
+  setUzkadLayer: (id: string, gj: GeoJSON.FeatureCollection | null) => void
+  setUzkadAnalysis: (results: ContourResult[], summary: string) => void
+  clearUzkadLayer: () => void
 
   // reset
   clearAll: () => void
@@ -113,6 +123,18 @@ export const useStore = create<AppState>((set, get) => ({
   summary: '',
   setLayer: (id, gj) => set({ layerId: id, layerGeoJSON: gj }),
   setAnalysis: (contours, summary) => set({ contours, summary }),
+  clearContourLayer: () =>
+    set({ layerId: null, layerGeoJSON: null, contours: [], summary: '' }),
+
+  uzkadLayerId: null,
+  uzkadGeoJSON: null,
+  uzkadResults: [],
+  uzkadSummary: '',
+  setUzkadLayer: (id, gj) => set({ uzkadLayerId: id, uzkadGeoJSON: gj }),
+  setUzkadAnalysis: (results, summary) =>
+    set({ uzkadResults: results, uzkadSummary: summary }),
+  clearUzkadLayer: () =>
+    set({ uzkadLayerId: null, uzkadGeoJSON: null, uzkadResults: [], uzkadSummary: '' }),
 
   clearAll: () =>
     set({
@@ -125,6 +147,8 @@ export const useStore = create<AppState>((set, get) => ({
       centroid: null,
       contours: [],
       summary: '',
+      uzkadResults: [],
+      uzkadSummary: '',
     }),
 }))
 

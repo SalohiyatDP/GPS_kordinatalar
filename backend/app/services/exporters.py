@@ -222,11 +222,17 @@ def analysis_to_kmz(points: list[dict], contours: list[dict] | None = None) -> b
             if not geojson:
                 continue
             full = c.get("status") == "Full"
-            color = simplekml.Color.green if full else simplekml.Color.yellow
+            vacant = c.get("status") == "Vacant"
+            if full:
+                color = simplekml.Color.green
+            elif vacant:
+                color = simplekml.Color.orange
+            else:
+                color = simplekml.Color.yellow
             label = str(c.get("code") or c.get("contour") or "")
             ha = (c.get("intersection_area") or 0) / 10_000.0
             cov = c.get("coverage_percent") or 0
-            holat = "To'liq" if full else "Qisman"
+            holat = "To'liq" if full else ("Bo'sh" if vacant else "Qisman")
             desc = (
                 f"Kontur: {label}\n"
                 f"Viloyat: {c.get('region') or '-'}\n"

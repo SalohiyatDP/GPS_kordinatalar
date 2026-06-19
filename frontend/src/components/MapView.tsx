@@ -18,6 +18,7 @@ const COLORS = {
   polygon: '#dc2626', // red
   full: '#16a34a', // green
   partial: '#eab308', // yellow
+  vacant: '#f97316', // orange
 }
 
 function FitBounds() {
@@ -41,7 +42,8 @@ function FitBounds() {
 }
 
 export default function MapView() {
-  const { points, polygonGeoJSON, layerGeoJSON, contours, theme } = useStore()
+  const { points, polygonGeoJSON, layerGeoJSON, contours, theme,
+    uzkadGeoJSON, uzkadResults } = useStore()
 
   const polygonLatLngs = useMemo(
     () => points.map((p) => [p.latitude, p.longitude] as [number, number]),
@@ -108,6 +110,51 @@ export default function MapView() {
                   f?.properties?.status === 'Full' ? COLORS.full : COLORS.partial,
                 fillOpacity: 0.4,
               })}
+              onEachFeature={(f, layer) => {
+                layer.bindTooltip(String(f.properties?.code ?? ''), {
+                  permanent: false,
+                })
+              }}
+            />
+          </LayersControl.Overlay>
+        )}
+
+        {/* UZKAD base layer */}
+        {uzkadGeoJSON && (
+          <LayersControl.Overlay checked name="UZKAD">
+            <GeoJSON
+              data={uzkadGeoJSON}
+              style={{ color: '#7c3aed', weight: 1, fillOpacity: 0.04,
+                dashArray: '3' }}
+            />
+          </LayersControl.Overlay>
+        )}
+
+        {/* UZKAD analysis (cadastral parcels + vacant) */}
+        {uzkadResults.length > 0 && (
+          <LayersControl.Overlay checked name="UZKAD natija">
+            <GeoJSON
+              key={JSON.stringify(uzkadResults.map((c) => c.code))}
+              data={
+                {
+                  type: 'FeatureCollection',
+                  features: uzkadResults
+                    .filter((c) => c.geometry)
+                    .map((c) => ({
+                      type: 'Feature' as const,
+                      geometry: c.geometry as GeoJSON.Geometry,
+                      properties: { code: c.code, status: c.status },
+                    })),
+                } as GeoJSON.FeatureCollection
+              }
+              style={(f) => {
+                const st = f?.properties?.status
+                const color =
+                  st === 'Full' ? COLORS.full
+                    : st === 'Vacant' ? COLORS.vacant
+                      : COLORS.partial
+                return { color, weight: 2, fillColor: color, fillOpacity: 0.45 }
+              }}
               onEachFeature={(f, layer) => {
                 layer.bindTooltip(String(f.properties?.code ?? ''), {
                   permanent: false,

@@ -73,6 +73,22 @@ export async function analyzePolygon(
   return data
 }
 
+export async function analyzeUzkad(
+  layerId: string,
+  points: PointInput[],
+): Promise<PolygonAnalysis> {
+  const { data } = await api.post('/cadastre/analyze-uzkad', {
+    layer_id: layerId,
+    points,
+    include_geometry: true,
+  })
+  return data
+}
+
+export async function deleteLayer(layerId: string): Promise<void> {
+  await api.delete(`/cadastre/layer/${layerId}`)
+}
+
 export async function analyzePoints(layerId: string, points: PointInput[]) {
   const { data } = await api.post('/cadastre/analyze-points', {
     layer_id: layerId,

@@ -39,6 +39,8 @@ _ATTRIBUTE_ALIASES = {
     "mfy": ["mfy", "mahalla", "mfy_nomi"],
     "contour": ["kontur_raqami", "kontur_raq", "kontur_no", "kontur", "contour",
                 "yagona_kon", "raqam", "номер"],
+    "cadastral": ["cadastral_", "cadastral", "kadastr_raqami", "kadastr_ra",
+                  "kadastr_no", "cad_num", "cadnum", "kadastr", "kad_raqam"],
     "land_type": ["yer_turi", "yer_tur", "land_type", "toifa", "tip"],
     "area_attr": ["umumiy_maydon", "umumiy_may", "umumiy", "maydoni", "maydon",
                   "shape_area", "area", "площадь"],
@@ -214,18 +216,35 @@ class PolygonAnalysis:
 
 
 def analyze_polygon(layer: ContourLayer, polygon: Polygon,
-                    include_geometry: bool = True) -> PolygonAnalysis:
-    """Overlay the user polygon on the contour layer.
+                    include_geometry: bool = True, *,
+                    id_field: str = "contour", append_q: bool = True,
+                    compute_vacant: bool = False) -> PolygonAnalysis:
+    """Overlay the user polygon on a cadastre layer.
 
-    Returns, per intersecting contour: attributes, contour area, intersection
-    area, coverage %, status (Full/Partial) and the display code (e.g. 145 or
-    145q).
+    Returns, per intersecting feature: attributes, feature area, intersection
+    area, coverage %, status (Full/Partial) and a display code.
+
+    Parameters
+    ----------
+    id_field:
+        Logical attribute used as the feature identifier ("contour" for the
+        kontur layer, "cadastral" for the UZKAD layer).
+    append_q:
+        When True a partially covered feature gets a trailing "q" (145 -> 145q).
+        Disabled for cadastral numbers (which must not be mutated).
+    compute_vacant:
+        When True, the part of the polygon not covered by any feature is
+        reported as a separate "vacant" (boʻsh) entry — used for UZKAD to flag
+        land that has no cadastral parcel.
     """
+    from shapely.geometry import mapping
+    from shapely.ops import unary_union
+
     sindex = layer.gdf.sindex
     candidate_idx = list(sindex.intersection(polygon.bounds))
 
     rows: list[dict] = []
-    codes: list[str] = []
+    intersections = []  # geometries, for vacant-area computation
 
     for idx in candidate_idx:
         row = layer.gdf.iloc[idx]
@@ -236,43 +255,71 @@ def analyze_polygon(layer: ContourLayer, polygon: Polygon,
         if inter.is_empty:
             continue
 
-        contour_area = area_of_geometry(geom)
+        feature_area = area_of_geometry(geom)
         inter_area = area_of_geometry(inter)
-        if contour_area <= 0:
+        if feature_area <= 0:
             continue
 
-        coverage = inter_area / contour_area * 100.0
+        coverage = inter_area / feature_area * 100.0
         is_full = coverage >= FULL_COVERAGE_THRESHOLD
 
-        contour_no = _clean_contour(layer.attr(row, "contour"))
-        code = _format_code(contour_no, is_full)
-        codes.append(code)
+        ident = _clean_contour(layer.attr(row, id_field))
+        if append_q:
+            code = _format_code(ident, is_full)
+        else:
+            code = "" if ident is None else str(ident)
+
+        intersections.append(inter)
 
         entry = {
-            "contour": contour_no,
+            "contour": ident,
             "code": code,
             "region": _val(layer.attr(row, "region")),
             "district": _val(layer.attr(row, "district")),
             "massif": _val(layer.attr(row, "massif")),
             "mfy": _val(layer.attr(row, "mfy")),
             "land_type": _val(layer.attr(row, "land_type")),
-            "contour_area": round(contour_area, 2),
+            "contour_area": round(feature_area, 2),
             "intersection_area": round(inter_area, 2),
             "coverage_percent": round(coverage, 2),
             "status": "Full" if is_full else "Partial",
         }
         if include_geometry:
-            import json
-
-            from shapely.geometry import mapping
             entry["geometry"] = mapping(inter)
         rows.append(entry)
 
-    # Order contours by contour number where possible.
+    # Order features by identifier where possible.
     rows.sort(key=lambda r: _sort_key(r["contour"]))
     codes = [r["code"] for r in rows]
 
-    summary = _build_summary(codes)
+    # Vacant (uncovered) area — land with no cadastral parcel.
+    vacant_entry = None
+    if compute_vacant:
+        poly_area = area_of_geometry(polygon)
+        if intersections:
+            covered = unary_union(intersections)
+            vacant_geom = polygon.difference(covered)
+        else:
+            vacant_geom = polygon
+        vacant_area = area_of_geometry(vacant_geom)
+        vacant_pct = (vacant_area / poly_area * 100.0) if poly_area > 0 else 0.0
+        # Only report meaningful vacant land (ignore sliver artifacts).
+        if vacant_area > 0 and vacant_pct >= 0.1:
+            vacant_entry = {
+                "contour": None,
+                "code": "Boʻsh",
+                "region": None, "district": None, "massif": None,
+                "mfy": None, "land_type": None,
+                "contour_area": round(vacant_area, 2),
+                "intersection_area": round(vacant_area, 2),
+                "coverage_percent": round(vacant_pct, 2),
+                "status": "Vacant",
+            }
+            if include_geometry and not vacant_geom.is_empty:
+                vacant_entry["geometry"] = mapping(vacant_geom)
+            rows.append(vacant_entry)
+
+    summary = _build_summary(codes, id_field=id_field, vacant=vacant_entry)
     return PolygonAnalysis(contours=rows, summary=summary, summary_codes=codes)
 
 
@@ -281,7 +328,20 @@ def _format_code(contour_no, is_full: bool) -> str:
     return base if is_full else f"{base}q"
 
 
-def _build_summary(codes: list[str]) -> str:
+def _build_summary(codes: list[str], *, id_field: str = "contour",
+                   vacant: dict | None = None) -> str:
+    if id_field == "cadastral":
+        if not codes:
+            base = "Poligon hech qanday kadastr uchastkasi bilan kesishmaydi."
+        else:
+            base = (f"Poligon {len(codes)} ta kadastr uchastkasi bilan kesishadi: "
+                    f"{', '.join(codes)}.")
+        if vacant is not None:
+            ha = vacant["intersection_area"] / 10_000.0
+            base += (f" Boʻsh (kadastrsiz) maydon: {ha:.4f} ga "
+                     f"({vacant['coverage_percent']:.1f}%).")
+        return base
+
     if not codes:
         return "The polygon does not intersect any contour."
     joined = ", ".join(codes)

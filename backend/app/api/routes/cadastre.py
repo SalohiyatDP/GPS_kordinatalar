@@ -66,6 +66,23 @@ def analyze_polygon(req: AnalyzeRequest):
     return analysis.to_dict()
 
 
+@router.post("/analyze-uzkad")
+def analyze_uzkad(req: AnalyzeRequest):
+    """UZKAD analysis: intersect with cadastral numbers (cadastral_ column) and
+    report vacant (boʻsh) land that has no cadastral parcel."""
+    layer = store.get_layer(req.layer_id)
+    if layer is None:
+        raise HTTPException(status_code=404, detail="Layer not found. Upload again.")
+    pts = [(p.latitude, p.longitude) for p in req.points]
+    if len(pts) < 3:
+        raise HTTPException(status_code=400, detail="Need at least 3 points.")
+    polygon = geo.build_polygon(pts)
+    analysis = cadastre.analyze_polygon(
+        layer, polygon, include_geometry=req.include_geometry,
+        id_field="cadastral", append_q=False, compute_vacant=True)
+    return analysis.to_dict()
+
+
 @router.get("/layer/{layer_id}/geojson")
 def layer_geojson(layer_id: str, simplify: float = 0.0):
     """Return the contour layer as GeoJSON for map display (optionally simplified)."""

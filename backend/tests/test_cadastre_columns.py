@@ -73,3 +73,48 @@ def test_fallback_to_yagona_kon_when_no_kontur():
     gdf = gpd.GeoDataFrame(data, geometry=[c1], crs="EPSG:4326")
     layer = cadastre._prepare_layer(gdf)
     assert layer.column_map["contour"] == "Yagona_kon"
+
+
+
+def test_uzkad_cadastral_and_vacant():
+    """UZKAD: intersect by cadastral_ number and report vacant (boʻsh) land."""
+    p1 = Polygon([(0, 0), (1, 0), (1, 1), (0, 1)])
+    p2 = Polygon([(1, 0), (1.5, 0), (1.5, 1), (1, 1)])
+    gdf = gpd.GeoDataFrame(
+        {
+            "cadastral_": ["06:09:01:001", "06:09:01:002"],
+            "Viloyat": ["Namangan", "Namangan"],
+            "Tuman": ["Kosonsoy", "Kosonsoy"],
+        },
+        geometry=[p1, p2], crs="EPSG:4326",
+    )
+    layer = cadastre._prepare_layer(gdf)
+    assert layer.column_map["cadastral"] == "cadastral_"
+
+    # Polygon spans x[0,2]; parcels cover [0,1.5] -> vacant is x[1.5,2] (25%).
+    poly = Polygon([(0, 0), (2, 0), (2, 1), (0, 1)])
+    res = cadastre.analyze_polygon(
+        layer, poly, include_geometry=False,
+        id_field="cadastral", append_q=False, compute_vacant=True)
+
+    codes = [c["code"] for c in res.contours]
+    assert "06:09:01:001" in codes
+    assert "06:09:01:002" in codes
+    # No "q" suffix for cadastral numbers.
+    assert all(not c.endswith("q") for c in codes if c != "Boʻsh")
+    vacant = [c for c in res.contours if c["status"] == "Vacant"]
+    assert len(vacant) == 1
+    assert abs(vacant[0]["coverage_percent"] - 25.0) < 1.0
+    assert "kadastr" in res.summary.lower()
+    assert "ga" in res.summary
+
+
+def test_no_vacant_when_fully_covered():
+    p1 = Polygon([(0, 0), (2, 0), (2, 1), (0, 1)])
+    gdf = gpd.GeoDataFrame({"cadastral_": ["X-1"]}, geometry=[p1], crs="EPSG:4326")
+    layer = cadastre._prepare_layer(gdf)
+    poly = Polygon([(0.2, 0.2), (1.0, 0.2), (1.0, 0.8), (0.2, 0.8)])
+    res = cadastre.analyze_polygon(
+        layer, poly, include_geometry=False,
+        id_field="cadastral", append_q=False, compute_vacant=True)
+    assert not any(c["status"] == "Vacant" for c in res.contours)
