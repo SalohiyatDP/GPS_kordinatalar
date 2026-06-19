@@ -1,0 +1,23 @@
+services:
+  backend:
+    build: ./backend
+    container_name: cadastre-backend
+    environment:
+      APP_DATABASE_URL: "sqlite:////data/cadastre.db"
+    volumes:
+      - cadastre-data:/data
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: cadastre-frontend
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+
+volumes:
+  cadastre-data:
