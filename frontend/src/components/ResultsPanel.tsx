@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useStore } from '../store'
-import { computeGeometry, downloadExport } from '../api/client'
+import { computeGeometry, downloadExport, getErrorMessage } from '../api/client'
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
@@ -32,7 +32,7 @@ export default function ResultsPanel() {
       const res = await computeGeometry(pointInputs)
       setGeometry(res.area, res.perimeter, res.polygon_geojson, res.centroid)
     } catch (e) {
-      setError(String(e))
+      setError(getErrorMessage(e))
     } finally {
       setLoading(false)
     }
@@ -42,7 +42,7 @@ export default function ResultsPanel() {
     try {
       await downloadExport(pointInputs, format, kind)
     } catch (e) {
-      setError(String(e))
+      setError(getErrorMessage(e))
     }
   }
 

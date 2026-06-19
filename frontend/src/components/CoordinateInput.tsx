@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { useStore } from '../store'
-import { normalizeText, uploadCoordinateFile } from '../api/client'
+import { normalizeText, uploadCoordinateFile, getErrorMessage } from '../api/client'
 
 export default function CoordinateInput() {
   const { t, setNormalizeResult } = useStore()
@@ -18,7 +18,7 @@ export default function CoordinateInput() {
       const res = await normalizeText(text, resolveUrls)
       setNormalizeResult(res.coordinates, res.invalid, res.duplicates_removed)
     } catch (e) {
-      setError(String(e))
+      setError(getErrorMessage(e))
     } finally {
       setLoading(false)
     }
@@ -33,7 +33,7 @@ export default function CoordinateInput() {
       const res = await uploadCoordinateFile(file)
       setNormalizeResult(res.coordinates, res.invalid, res.duplicates_removed)
     } catch (err) {
-      setError(String(err))
+      setError(getErrorMessage(err))
     } finally {
       setLoading(false)
       if (fileRef.current) fileRef.current.value = ''

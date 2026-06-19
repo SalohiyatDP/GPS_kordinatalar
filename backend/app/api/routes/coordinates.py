@@ -5,7 +5,7 @@ from __future__ import annotations
 import csv
 import io
 
-from fastapi import APIRouter, File, UploadFile
+from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from app.schemas.models import NormalizeRequest, NormalizeResponse
 from app.services import normalizer as nz
@@ -21,9 +21,17 @@ async def normalize(req: NormalizeRequest):
     extra_pairs: list[tuple[float, float]] = []
 
     if req.resolve_urls and url_resolver.is_url(text):
-        extra_pairs = await url_resolver.resolve_text(text)
+        try:
+            extra_pairs = await url_resolver.resolve_text(text)
+        except Exception:
+            # URL resolution is best-effort and must never fail the request.
+            extra_pairs = []
 
-    result = nz.normalize_text(text)
+    try:
+        result = nz.normalize_text(text)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=422,
+                            detail=f"Could not parse coordinates: {exc}")
 
     if extra_pairs:
         # Merge URL-resolved coordinates, re-running duplicate detection.

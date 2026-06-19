@@ -5,6 +5,7 @@ import {
   generateReport,
   getLayerGeoJSON,
   uploadContours,
+  getErrorMessage,
 } from '../api/client'
 
 export default function CadastrePanel() {
@@ -34,7 +35,7 @@ export default function CadastrePanel() {
       const gj = await getLayerGeoJSON(res.layer_id, 0.0002)
       setLayer(res.layer_id, gj)
     } catch (err) {
-      setError(String(err))
+      setError(getErrorMessage(err))
     } finally {
       setLoading(false)
       if (fileRef.current) fileRef.current.value = ''
@@ -52,7 +53,7 @@ export default function CadastrePanel() {
       )
       setAnalysis(res.contours, res.summary)
     } catch (err) {
-      setError(String(err))
+      setError(getErrorMessage(err))
     } finally {
       setLoading(false)
     }
@@ -68,7 +69,7 @@ export default function CadastrePanel() {
         format,
       )
     } catch (err) {
-      setError(String(err))
+      setError(getErrorMessage(err))
     }
   }
 

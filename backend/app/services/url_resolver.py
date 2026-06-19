@@ -88,7 +88,9 @@ async def resolve_url(url: str, *, timeout: float = 10.0) -> tuple[float, float]
             found = _match_latlon(body)
             if found is not None:
                 return found
-    except (httpx.HTTPError, ValueError):
+    except Exception:
+        # Any network / parsing failure simply means "no coordinate found".
+        # URL resolution must never break the whole normalization request.
         return None
     return None
 
@@ -97,7 +99,10 @@ async def resolve_text(text: str) -> list[tuple[float, float]]:
     """Resolve every URL found in a block of text."""
     results: list[tuple[float, float]] = []
     for url in extract_urls(text):
-        coord = await resolve_url(url)
+        try:
+            coord = await resolve_url(url)
+        except Exception:
+            coord = None
         if coord is not None:
             results.append(coord)
     return results

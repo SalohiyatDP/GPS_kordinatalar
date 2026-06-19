@@ -115,8 +115,7 @@ export async function generateReport(
   triggerDownload(resp.data, resp.headers['content-disposition'])
 }
 
-function triggerDownload(blob: Blob, contentDisposition?: string) {
-  let filename = 'download'
+function triggerDownload(blob: Blob, contentDisposition?: string) {  let filename = 'download'
   if (contentDisposition) {
     const match = /filename="?([^"]+)"?/.exec(contentDisposition)
     if (match) filename = match[1]
@@ -129,4 +128,17 @@ function triggerDownload(blob: Blob, contentDisposition?: string) {
   a.click()
   a.remove()
   URL.revokeObjectURL(url)
+}
+
+
+/** Extract a human-readable message from an Axios/API error. */
+export function getErrorMessage(e: unknown): string {
+  if (axios.isAxiosError(e)) {
+    const detail = e.response?.data?.detail
+    if (typeof detail === 'string') return detail
+    if (detail) return JSON.stringify(detail)
+    if (e.response) return `Server error ${e.response.status}`
+    return e.message
+  }
+  return String(e)
 }

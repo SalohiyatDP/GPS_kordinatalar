@@ -117,3 +117,19 @@ def test_project_persistence():
     assert g.json()["name"] == "Proj1"
     d = client.delete(f"/api/projects/{pid}")
     assert d.json()["deleted"] is True
+
+
+
+def test_normalize_with_unreachable_url_never_500():
+    """A fake/unreachable map URL with resolve_urls=True must not crash."""
+    text = (
+        "41.131747,71.630325\n"
+        "https://maps.app.goo.gl/xxxx\n"
+        "41\u00b007'54.29\"N 71\u00b037'49.17\"E"
+    )
+    r = client.post("/api/coordinates/normalize",
+                    json={"text": text, "resolve_urls": True})
+    assert r.status_code == 200, r.text
+    data = r.json()
+    # The two valid textual coordinates must still be parsed.
+    assert data["count"] >= 2
