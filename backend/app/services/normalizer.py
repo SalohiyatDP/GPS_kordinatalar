@@ -176,6 +176,52 @@ def _replace_cyrillic(text: str) -> str:
     return "".join(_CYRILLIC_HEMISPHERE.get(ch, ch) for ch in text)
 
 
+# Characters that mark a DMS component (degree / minute / second).
+_DMS_MARKER_CHARS = set(_DEGREE_CHARS + _MINUTE_CHARS + _SECOND_CHARS)
+_HEMI_RE = re.compile(r"[NSEWnsew]")
+# A comma sitting directly between two digits is a decimal separator (26,774).
+_DECIMAL_COMMA_RE = re.compile(r"(?<=\d),(?=\d)")
+# European decimal pair without spaces, e.g. "41,131747,71,630325".
+_EURO_PAIR_RE = re.compile(
+    r"^\s*([+-]?\d+),(\d+)\s*[,;]\s*([+-]?\d+),(\d+)\s*$")
+
+
+def _preprocess_separators(text: str) -> str:
+    """Normalize the decimal separator so commas like ``26,774`` are accepted.
+
+    The tricky part is that a comma can mean two different things:
+      * a decimal separator  -> ``26,774``  (European style)
+      * a pair separator      -> ``41.13, 71.63``
+
+    Heuristics (applied per line):
+      1. If the line already contains a period, periods are the decimal mark
+         and any commas are pair separators -> leave commas untouched.
+      2. Otherwise, if the line contains DMS markers (° ' ") or a hemisphere
+         letter, a comma between two digits is a decimal separator.
+      3. Otherwise, if the two numbers are separated by whitespace, commas
+         between digits are decimal separators.
+      4. Otherwise, a fully comma-delimited European pair
+         (``41,1317,71,6303``) is reformatted into two decimal numbers.
+    """
+    s = text
+    if "." in s:
+        return s
+
+    has_marker = (any(ch in _DMS_MARKER_CHARS for ch in s)
+                  or bool(_HEMI_RE.search(s)))
+    if has_marker:
+        return _DECIMAL_COMMA_RE.sub(".", s)
+
+    if re.search(r"\d\s+\d", s):
+        return _DECIMAL_COMMA_RE.sub(".", s)
+
+    m = _EURO_PAIR_RE.match(s)
+    if m:
+        return f"{m.group(1)}.{m.group(2)} {m.group(3)}.{m.group(4)}"
+
+    return s
+
+
 def _parse_angles(text: str) -> list[_Angle]:
     """Extract every angle token from a piece of text."""
     angles: list[_Angle] = []
@@ -212,6 +258,7 @@ def parse_line(line: str) -> ParsedCoordinate | None:
         return None
 
     cleaned = _replace_cyrillic(raw)
+    cleaned = _preprocess_separators(cleaned)
     angles = _parse_angles(cleaned)
     if len(angles) < 2:
         return None

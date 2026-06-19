@@ -43,6 +43,41 @@ class TestParsing:
         assert approx(c.latitude, 41.131747)
         assert approx(c.longitude, 71.630325)
 
+    def test_dms_comma_decimal_seconds(self):
+        # User-reported case: comma used as decimal separator in seconds.
+        c = nz.parse_line('41°8\'26,774"N 71°39\'27,257"E')
+        assert c is not None
+        assert approx(c.latitude, 41 + 8 / 60 + 26.774 / 3600)
+        assert approx(c.longitude, 71 + 39 / 60 + 27.257 / 3600)
+        assert c.valid
+
+    def test_decimal_comma_with_space(self):
+        # European decimal degrees, comma decimal, space separated.
+        c = nz.parse_line("41,131747 71,630325")
+        assert c is not None
+        assert approx(c.latitude, 41.131747)
+        assert approx(c.longitude, 71.630325)
+
+    def test_decimal_comma_full_european(self):
+        # Comma decimal AND comma pair separator, no spaces.
+        c = nz.parse_line("41,131747,71,630325")
+        assert c is not None
+        assert approx(c.latitude, 41.131747)
+        assert approx(c.longitude, 71.630325)
+
+    def test_period_pair_separator_still_works(self):
+        # Period decimals with comma separator must NOT be misread.
+        c = nz.parse_line("41.131747,71.630325")
+        assert c is not None
+        assert approx(c.latitude, 41.131747)
+        assert approx(c.longitude, 71.630325)
+
+    def test_mixed_comma_decimal_with_hemisphere(self):
+        c = nz.parse_line("41 7 54,29 N 71 37 49,17 E")
+        assert c is not None
+        assert approx(c.latitude, 41.131747)
+        assert approx(c.longitude, 71.630325)
+
     def test_southern_western_hemisphere(self):
         c = nz.parse_line("33.8688 S, 151.2093 W")
         assert c is not None
