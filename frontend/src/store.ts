@@ -44,6 +44,9 @@ interface AppState {
   summary: string
   setLayer: (id: string, gj: GeoJSON.FeatureCollection | null) => void
   setAnalysis: (contours: ContourResult[], summary: string) => void
+
+  // reset
+  clearAll: () => void
 }
 
 function initialTheme(): 'light' | 'dark' {
@@ -110,6 +113,19 @@ export const useStore = create<AppState>((set, get) => ({
   summary: '',
   setLayer: (id, gj) => set({ layerId: id, layerGeoJSON: gj }),
   setAnalysis: (contours, summary) => set({ contours, summary }),
+
+  clearAll: () =>
+    set({
+      points: [],
+      invalid: [],
+      duplicatesRemoved: 0,
+      area: null,
+      perimeter: null,
+      polygonGeoJSON: null,
+      centroid: null,
+      contours: [],
+      summary: '',
+    }),
 }))
 
 function renumber(points: Point[]): Point[] {

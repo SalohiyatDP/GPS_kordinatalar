@@ -30,13 +30,17 @@ WGS84 = "EPSG:4326"
 FULL_COVERAGE_THRESHOLD = 99.9
 
 # Map logical attribute -> possible column names in the contour layer.
+# Shapefiles (DBF) truncate field names to 10 characters, so the matcher below
+# also handles prefix matches (e.g. "Kontur_raq" -> "kontur_raqami").
 _ATTRIBUTE_ALIASES = {
-    "region": ["viloyat", "region", "oblast", "область"],
-    "district": ["tuman", "district", "rayon", "район"],
-    "massif": ["massiv", "massif", "массив"],
-    "contour": ["kontur", "contour", "kontur_raqami", "kontur_no", "номер", "id"],
-    "land_type": ["yer_turi", "land_type", "tip"],
-    "area_attr": ["maydon", "area", "maydoni", "площадь"],
+    "region": ["viloyat", "region", "oblast", "viloyati", "область"],
+    "district": ["tuman", "tumani", "district", "rayon", "район"],
+    "massif": ["massiv", "massif", "mfy", "mahalla", "massivi", "массив"],
+    "contour": ["kontur_raqami", "kontur_raq", "kontur_no", "kontur", "contour",
+                "yagona_kon", "raqam", "номер"],
+    "land_type": ["yer_turi", "yer_tur", "land_type", "toifa", "tip"],
+    "area_attr": ["umumiy_maydon", "umumiy_may", "umumiy", "maydoni", "maydon",
+                  "shape_area", "area", "площадь"],
 }
 
 
@@ -60,16 +64,51 @@ class ContourLayer:
 
 
 def _resolve_columns(gdf: gpd.GeoDataFrame) -> dict[str, str | None]:
-    lower_map = {c.lower(): c for c in gdf.columns}
+    """Map logical attributes to real column names.
+
+    Robust to DBF 10-character field-name truncation and case differences by
+    trying, in order: exact match, prefix match (either direction), then
+    substring match.
+    """
+    lower_map = {
+        c.lower(): c for c in gdf.columns if c.lower() != "geometry"
+    }
     resolved: dict[str, str | None] = {}
+    used: set[str] = set()
     for logical, aliases in _ATTRIBUTE_ALIASES.items():
-        found = None
-        for alias in aliases:
-            if alias.lower() in lower_map:
-                found = lower_map[alias.lower()]
-                break
+        found = _find_column(lower_map, aliases, used)
+        if found is not None:
+            used.add(found.lower())
         resolved[logical] = found
     return resolved
+
+
+def _find_column(lower_map: dict[str, str], aliases: list[str],
+                 used: set[str]) -> str | None:
+    items = [(lc, orig) for lc, orig in lower_map.items() if lc not in used]
+
+    # 1. Exact match.
+    for alias in aliases:
+        for lc, orig in items:
+            if lc == alias:
+                return orig
+    # 2. Prefix match in either direction (handles 10-char DBF truncation).
+    for alias in aliases:
+        if len(alias) < 4:
+            continue
+        for lc, orig in items:
+            if len(lc) < 4:
+                continue
+            if lc.startswith(alias) or alias.startswith(lc):
+                return orig
+    # 3. Substring match.
+    for alias in aliases:
+        if len(alias) < 5:
+            continue
+        for lc, orig in items:
+            if alias in lc or lc in alias:
+                return orig
+    return None
 
 
 def load_contours_from_zip(zip_bytes: bytes) -> ContourLayer:
@@ -141,7 +180,7 @@ def analyze_points(layer: ContourLayer,
                 "region": _val(layer.attr(match, "region")),
                 "district": _val(layer.attr(match, "district")),
                 "massif": _val(layer.attr(match, "massif")),
-                "contour": _val(layer.attr(match, "contour")),
+                "contour": _clean_contour(layer.attr(match, "contour")),
             })
         else:
             results.append({
@@ -203,7 +242,7 @@ def analyze_polygon(layer: ContourLayer, polygon: Polygon,
         coverage = inter_area / contour_area * 100.0
         is_full = coverage >= FULL_COVERAGE_THRESHOLD
 
-        contour_no = _val(layer.attr(row, "contour"))
+        contour_no = _clean_contour(layer.attr(row, "contour"))
         code = _format_code(contour_no, is_full)
         codes.append(code)
 
@@ -250,9 +289,34 @@ def _build_summary(codes: list[str]) -> str:
 
 
 def _val(v):
-    if v is None or v == "":
+    """Normalize a raw attribute value into a JSON-safe Python value."""
+    if v is None:
+        return None
+    # Convert numpy / pandas scalar types to native Python.
+    if hasattr(v, "item") and not isinstance(v, (str, bytes)):
+        try:
+            v = v.item()
+        except Exception:
+            pass
+    # Drop empty strings and NaN.
+    if isinstance(v, str):
+        v = v.strip()
+        return v or None
+    if isinstance(v, float) and v != v:  # NaN
         return None
     return v
+
+
+def _clean_contour(v):
+    """Render a contour identifier cleanly (e.g. 307.0 -> "307")."""
+    v = _val(v)
+    if v is None:
+        return None
+    if isinstance(v, (int,)):
+        return str(v)
+    if isinstance(v, float):
+        return str(int(v)) if v.is_integer() else ("%g" % v)
+    return str(v).strip() or None
 
 
 def _sort_key(contour_no):
