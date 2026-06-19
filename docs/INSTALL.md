@@ -33,13 +33,29 @@ The SQLite database is persisted in the `cadastre-data` Docker volume.
 
 ### 1. Backend
 
+**Linux / macOS:**
 ```bash
 cd backend
 python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
+source .venv/bin/activate
 pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
 ```
+
+**Windows (PowerShell)** — run each command on its own line (`&&` is not supported):
+```powershell
+cd backend
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
+```
+
+> If PowerShell blocks the activation script ("running scripts is disabled"),
+> run this once for the current session, then activate again:
+> ```powershell
+> Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+> ```
 
 Configuration is via environment variables (prefix `APP_`) or a `.env` file:
 

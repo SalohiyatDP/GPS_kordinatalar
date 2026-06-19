@@ -53,30 +53,78 @@ docker compose up --build
 
 Toʻliq koʻrsatma uchun [docs/INSTALL.md](docs/INSTALL.md) ga qarang.
 
+**Talablar:** Python 3.10+ va Node.js 18+ oʻrnatilgan boʻlishi kerak.
+Backend va frontend uchun **alohida ikkita terminal** oching.
+
+### 🪟 Windows (PowerShell)
+
+> PowerShell `&&` belgisini qoʻllamaydi — har bir buyruqni **alohida qatorda** kiriting.
+
+**1-terminal — Backend:**
+```powershell
+cd backend
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+```
+
+> Agar `Activate.ps1` "running scripts is disabled" xatosini bersa, avval shuni
+> bajaring (faqat shu oyna uchun amal qiladi), keyin yana activate qiling:
+> ```powershell
+> Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+> ```
+
+Activate boʻlgach qator boshida `(.venv)` koʻrinadi. Backend manzili:
+<http://localhost:8000> · Swagger: <http://localhost:8000/docs>
+
+**2-terminal — Frontend:**
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+Brauzerda oching: <http://localhost:5173>
+
+### 🐧 Linux / 🍎 macOS
+
+**1-terminal — Backend:**
 ```bash
-# Backend
 cd backend
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 uvicorn app.main:app --reload          # http://localhost:8000
+```
 
-# Frontend (yangi terminal)
+**2-terminal — Frontend:**
+```bash
 cd frontend
 npm install
 npm run dev                            # http://localhost:5173
 ```
 
 Vite ishlab chiqish serveri `/api` soʻrovlarini `http://localhost:8000` ga
-yoʻnaltiradi (proxy).
+yoʻnaltiradi (proxy), shuning uchun ikkala server ham ishlab turishi kerak.
 
 ---
 
 ## 🧪 Testlar
 
+**Windows (PowerShell):**
+```powershell
+cd backend
+.\.venv\Scripts\Activate.ps1
+pytest -q
+```
+
+**Linux / macOS:**
 ```bash
 cd backend && source .venv/bin/activate
-pytest -q          # 30 ta test: normallashtirish, geometriya, eksportlar, kadastr, toʻliq API
+pytest -q
 ```
+
+> 31 ta test: normallashtirish, geometriya, eksportlar, kadastr (toʻliq/qisman),
+> shapefayl yuklash va toʻliq API ish jarayoni.
 
 ---
 
