@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import io
 import json
+import os
 import zipfile
 from datetime import datetime
 
@@ -18,10 +19,41 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import cm
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import (Image, Paragraph, SimpleDocTemplate, Spacer,
                                 Table, TableStyle)
 
 from .normalizer import decimal_to_dms
+
+# ---------------------------------------------------------------------------
+# Unicode font registration (Cyrillic support for PDF reports)
+# ---------------------------------------------------------------------------
+
+_FONTS_DIR = os.path.join(os.path.dirname(__file__), "..", "assets", "fonts")
+FONT_NAME = "Helvetica"
+FONT_BOLD = "Helvetica-Bold"
+
+try:
+    _regular = os.path.join(_FONTS_DIR, "DejaVuSans.ttf")
+    _bold = os.path.join(_FONTS_DIR, "DejaVuSans-Bold.ttf")
+    if os.path.exists(_regular):
+        pdfmetrics.registerFont(TTFont("DejaVuSans", _regular))
+        FONT_NAME = "DejaVuSans"
+    if os.path.exists(_bold):
+        pdfmetrics.registerFont(TTFont("DejaVuSans-Bold", _bold))
+        FONT_BOLD = "DejaVuSans-Bold"
+except Exception:  # pragma: no cover - fall back to built-in fonts
+    FONT_NAME = "Helvetica"
+    FONT_BOLD = "Helvetica-Bold"
+
+
+# Square meters -> hectares.
+def _to_ha(m2) -> float:
+    try:
+        return round(float(m2) / 10_000.0, 4)
+    except (TypeError, ValueError):
+        return 0.0
 
 # ---------------------------------------------------------------------------
 # Excel
@@ -94,19 +126,19 @@ def analysis_to_xlsx(points: list[dict], area: dict, perimeter: dict,
     if contours:
         ws3 = wb.create_sheet("Contours")
         c_headers = ["Contour", "Region", "District", "Massif", "MFY",
-                     "Contour Area (m²)", "Intersection Area (m²)",
+                     "Contour Area (ha)", "Intersection Area (ha)",
                      "Coverage %", "Status"]
         ws3.append(c_headers)
         _style_header(ws3, len(c_headers))
         for c in contours:
             ws3.append([
-                c.get("contour"),
+                c.get("code") or c.get("contour"),
                 c.get("region"),
                 c.get("district"),
                 c.get("massif"),
                 c.get("mfy"),
-                c.get("contour_area"),
-                c.get("intersection_area"),
+                _to_ha(c.get("contour_area")),
+                _to_ha(c.get("intersection_area")),
                 c.get("coverage_percent"),
                 c.get("status"),
             ])
@@ -191,13 +223,29 @@ def analysis_to_kmz(points: list[dict], contours: list[dict] | None = None) -> b
                 continue
             full = c.get("status") == "Full"
             color = simplekml.Color.green if full else simplekml.Color.yellow
-            for ring_coords in _iter_polygon_rings(geojson):
+            label = str(c.get("code") or c.get("contour") or "")
+            ha = (c.get("intersection_area") or 0) / 10_000.0
+            cov = c.get("coverage_percent") or 0
+            holat = "To'liq" if full else "Qisman"
+            desc = (
+                f"Kontur: {label}\n"
+                f"Viloyat: {c.get('region') or '-'}\n"
+                f"Tuman: {c.get('district') or '-'}\n"
+                f"Massiv: {c.get('massif') or '-'}\n"
+                f"MFY: {c.get('mfy') or '-'}\n"
+                f"Kesishuv: {ha:.4f} ga\n"
+                f"Qamrov: {cov:.1f}%\n"
+                f"Holat: {holat}"
+            )
+            for j, ring_coords in enumerate(_iter_polygon_rings(geojson)):
                 cpol = c_folder.newpolygon(
-                    name=str(c.get("contour")),
+                    name=label if j == 0 else f"{label} ({j + 1})",
                     outerboundaryis=ring_coords,
+                    description=desc,
                 )
-                cpol.style.polystyle.color = simplekml.Color.changealphaint(90, color)
+                cpol.style.polystyle.color = simplekml.Color.changealphaint(120, color)
                 cpol.style.linestyle.color = color
+                cpol.style.linestyle.width = 2
     return _kml_to_kmz_bytes(kml)
 
 
@@ -258,6 +306,9 @@ def to_pdf(points: list[dict], area: dict, perimeter: dict,
                             bottomMargin=1.5 * cm, leftMargin=1.5 * cm,
                             rightMargin=1.5 * cm)
     styles = getSampleStyleSheet()
+    # Apply the Unicode (Cyrillic-capable) font to all used styles.
+    for _name in ("Title", "Normal", "Heading2"):
+        styles[_name].fontName = FONT_BOLD if _name in ("Title", "Heading2") else FONT_NAME
     elements = []
 
     elements.append(Paragraph(title, styles["Title"]))
@@ -308,16 +359,16 @@ def to_pdf(points: list[dict], area: dict, perimeter: dict,
     if contours:
         elements.append(Paragraph("Contour Analysis", styles["Heading2"]))
         cdata = [["Contour", "Region", "District", "Massif", "MFY",
-                  "Area m²", "Intersect m²", "Cov %", "Status"]]
+                  "Area (ha)", "Intersect (ha)", "Cov %", "Status"]]
         for c in contours:
             cdata.append([
-                str(c.get("contour", "")),
+                str(c.get("code") or c.get("contour", "")),
                 str(c.get("region", "")),
                 str(c.get("district", "")),
                 str(c.get("massif", "")),
                 str(c.get("mfy", "")),
-                f"{c.get('contour_area', 0):,.0f}",
-                f"{c.get('intersection_area', 0):,.0f}",
+                f"{_to_ha(c.get('contour_area')):,.4f}",
+                f"{_to_ha(c.get('intersection_area')):,.4f}",
                 f"{c.get('coverage_percent', 0):.1f}",
                 str(c.get("status", "")),
             ])
@@ -338,7 +389,8 @@ def _table_style() -> TableStyle:
     return TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1F4E78")),
         ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTNAME", (0, 0), (-1, 0), FONT_BOLD),
+        ("FONTNAME", (0, 1), (-1, -1), FONT_NAME),
         ("FONTSIZE", (0, 0), (-1, -1), 8),
         ("GRID", (0, 0), (-1, -1), 0.4, colors.grey),
         ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#EEF3F8")]),
