@@ -24,6 +24,7 @@ class NormalizeResponse(BaseModel):
     invalid: list[dict]
     duplicates_removed: int
     count: int
+    outside_territory: int = 0
 
 
 class PointInput(BaseModel):

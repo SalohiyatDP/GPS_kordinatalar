@@ -8,10 +8,35 @@ import io
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from app.schemas.models import NormalizeRequest, NormalizeResponse
+from app.services import boundary
 from app.services import normalizer as nz
 from app.services import url_resolver
 
 router = APIRouter(prefix="/api/coordinates", tags=["coordinates"])
+
+
+def _apply_territory(result: nz.NormalizationResult) -> dict:
+    """Drop coordinates outside Uzbekistan, moving them to ``invalid`` and
+    reporting how many were removed via ``outside_territory``."""
+    inside: list[nz.ParsedCoordinate] = []
+    outside: list[nz.ParsedCoordinate] = []
+    for c in result.coordinates:
+        if boundary.is_in_uzbekistan(c.latitude, c.longitude):
+            inside.append(c)
+        else:
+            c.valid = False
+            c.error = boundary.OUTSIDE_MESSAGE
+            outside.append(c)
+
+    for i, c in enumerate(inside, start=1):
+        c.point_number = i
+
+    result.coordinates = inside
+    result.invalid.extend(outside)
+
+    data = result.to_dict()
+    data["outside_territory"] = len(outside)
+    return data
 
 
 @router.post("/normalize", response_model=NormalizeResponse)
@@ -38,7 +63,7 @@ async def normalize(req: NormalizeRequest):
         merged = [(c.latitude, c.longitude) for c in result.coordinates] + extra_pairs
         result = nz.normalize_pairs(merged)
 
-    return result.to_dict()
+    return _apply_territory(result)
 
 
 @router.post("/upload", response_model=NormalizeResponse)
@@ -55,7 +80,7 @@ async def upload_file(file: UploadFile = File(...)):
         text = _csv_to_text(text)
 
     result = nz.normalize_text(text)
-    return result.to_dict()
+    return _apply_territory(result)
 
 
 def _csv_to_text(text: str) -> str:

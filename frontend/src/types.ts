@@ -12,6 +12,7 @@ export interface NormalizeResponse {
   invalid: Point[]
   duplicates_removed: number
   count: number
+  outside_territory?: number
 }
 
 export interface AreaResult {

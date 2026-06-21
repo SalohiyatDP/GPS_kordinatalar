@@ -88,6 +88,8 @@ const uz: Dict = {
   overlayIntersections: 'Kesishmalar',
   overlayUzkad: 'UZKAD',
   overlayUzkadResult: 'UZKAD natija',
+  pointOutside: 'Bu nuqta Oʻzbekiston hududidan tashqarida — qoʻshilmadi',
+  outsideRemovedSuffix: 'ta nuqta Oʻzbekiston hududidan tashqarida boʻlgani uchun olib tashlandi',
 }
 
 const ru: Dict = {
@@ -170,6 +172,8 @@ const ru: Dict = {
   overlayIntersections: 'Пересечения',
   overlayUzkad: 'UZKAD',
   overlayUzkadResult: 'Результат UZKAD',
+  pointOutside: 'Эта точка за пределами Узбекистана — не добавлена',
+  outsideRemovedSuffix: 'точек удалено, так как они вне территории Узбекистана',
 }
 
 const en: Dict = {
@@ -252,6 +256,8 @@ const en: Dict = {
   overlayIntersections: 'Intersections',
   overlayUzkad: 'UZKAD',
   overlayUzkadResult: 'UZKAD result',
+  pointOutside: 'This point is outside Uzbekistan — not added',
+  outsideRemovedSuffix: 'point(s) removed for being outside Uzbekistan',
 }
 
 export const TRANSLATIONS: Record<Lang, Dict> = { uz, ru, en }

@@ -5,7 +5,7 @@ import { normalizeText, uploadCoordinateFile, getErrorMessage } from '../api/cli
 export default function CoordinateInput() {
   const {
     t, setNormalizeResult, clearAll, points,
-    mapPickMode, setMapPickMode,
+    mapPickMode, setMapPickMode, setNotice,
   } = useStore()
   const [text, setText] = useState('')
   const [resolveUrls, setResolveUrls] = useState(true)
@@ -20,6 +20,9 @@ export default function CoordinateInput() {
     try {
       const res = await normalizeText(text, resolveUrls)
       setNormalizeResult(res.coordinates, res.invalid, res.duplicates_removed)
+      if (res.outside_territory && res.outside_territory > 0) {
+        setNotice(`${res.outside_territory} ${t('outsideRemovedSuffix')}`)
+      }
     } catch (e) {
       setError(getErrorMessage(e))
     } finally {
@@ -35,6 +38,9 @@ export default function CoordinateInput() {
     try {
       const res = await uploadCoordinateFile(file)
       setNormalizeResult(res.coordinates, res.invalid, res.duplicates_removed)
+      if (res.outside_territory && res.outside_territory > 0) {
+        setNotice(`${res.outside_territory} ${t('outsideRemovedSuffix')}`)
+      }
     } catch (err) {
       setError(getErrorMessage(err))
     } finally {

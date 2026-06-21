@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { Lang } from './i18n/translations'
 import { TRANSLATIONS } from './i18n/translations'
 import { pairDms } from './utils/dms'
+import { isInUzbekistan } from './utils/territory'
 import type {
   AreaResult,
   ContourResult,
@@ -29,7 +30,12 @@ interface AppState {
   // input method: pick points by clicking the map
   mapPickMode: boolean
   setMapPickMode: (v: boolean) => void
-  addPointLatLng: (lat: number, lon: number) => void
+  addPointLatLng: (lat: number, lon: number) => boolean
+  updatePointLatLng: (index: number, lat: number, lon: number) => boolean
+
+  // transient notice (e.g. point outside Uzbekistan)
+  notice: string | null
+  setNotice: (msg: string | null) => void
 
   // geometry
   area: AreaResult | null
@@ -119,6 +125,10 @@ export const useStore = create<AppState>((set, get) => ({
   mapPickMode: false,
   setMapPickMode: (v) => set({ mapPickMode: v }),
   addPointLatLng: (lat, lon) => {
+    if (!isInUzbekistan(lat, lon)) {
+      set({ notice: TRANSLATIONS[get().lang].pointOutside })
+      return false
+    }
     const pts = [...get().points, {
       point_number: 0,
       latitude: lat,
@@ -128,7 +138,27 @@ export const useStore = create<AppState>((set, get) => ({
       error: null,
     }]
     set({ points: renumber(pts) })
+    return true
   },
+  updatePointLatLng: (index, lat, lon) => {
+    if (!isInUzbekistan(lat, lon)) {
+      set({ notice: TRANSLATIONS[get().lang].pointOutside })
+      return false
+    }
+    const pts = [...get().points]
+    if (index < 0 || index >= pts.length) return false
+    pts[index] = {
+      ...pts[index],
+      latitude: lat,
+      longitude: lon,
+      dms: pairDms(lat, lon),
+    }
+    set({ points: pts })
+    return true
+  },
+
+  notice: null,
+  setNotice: (msg) => set({ notice: msg }),
 
   area: null,
   perimeter: null,

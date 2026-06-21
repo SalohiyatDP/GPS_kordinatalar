@@ -1,9 +1,9 @@
 import { useEffect, useMemo } from 'react'
 import {
-  CircleMarker,
   GeoJSON,
   LayersControl,
   MapContainer,
+  Marker,
   Polygon as LeafletPolygon,
   Popup,
   TileLayer,
@@ -20,6 +20,19 @@ const COLORS = {
   full: '#16a34a', // green
   partial: '#eab308', // yellow
   vacant: '#f97316', // orange
+}
+
+function numberIcon(n: number) {
+  return L.divIcon({
+    className: '',
+    html:
+      `<div style="background:${COLORS.point};color:#fff;border:2px solid #fff;` +
+      `border-radius:50%;width:22px;height:22px;display:flex;align-items:center;` +
+      `justify-content:center;font-size:11px;font-weight:700;` +
+      `box-shadow:0 0 3px rgba(0,0,0,.5)">${n}</div>`,
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
+  })
 }
 
 function FitBounds() {
@@ -60,7 +73,8 @@ function MapClickHandler({
 
 export default function MapView() {
   const { points, polygonGeoJSON, layerGeoJSON, contours, theme,
-    uzkadGeoJSON, uzkadResults, t, mapPickMode, addPointLatLng } = useStore()
+    uzkadGeoJSON, uzkadResults, t, mapPickMode, addPointLatLng,
+    updatePointLatLng, notice, setNotice } = useStore()
 
   const polygonLatLngs = useMemo(
     () => points.map((p) => [p.latitude, p.longitude] as [number, number]),
@@ -72,14 +86,26 @@ export default function MapView() {
       ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
       : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
 
+  useEffect(() => {
+    if (!notice) return
+    const id = setTimeout(() => setNotice(null), 4500)
+    return () => clearTimeout(id)
+  }, [notice, setNotice])
+
   return (
-    <MapContainer
-      center={[41.3111, 69.2797]}
-      zoom={6}
-      className={'h-full w-full' + (mapPickMode ? ' cursor-crosshair' : '')}
-      scrollWheelZoom
-    >
-      <MapClickHandler active={mapPickMode} onPick={addPointLatLng} />
+    <>
+      {notice && (
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1200] bg-orange-500 text-white text-xs sm:text-sm px-3 py-2 rounded shadow-lg max-w-[90%] text-center">
+          ⚠️ {notice}
+        </div>
+      )}
+      <MapContainer
+        center={[41.3111, 69.2797]}
+        zoom={6}
+        className={'h-full w-full' + (mapPickMode ? ' cursor-crosshair' : '')}
+        scrollWheelZoom
+      >
+        <MapClickHandler active={mapPickMode} onPick={addPointLatLng} />
       <LayersControl position="topright">
         <LayersControl.BaseLayer checked name={t('layerBaseMap')}>
           <TileLayer
@@ -215,21 +241,27 @@ export default function MapView() {
         />
       )}
 
-      {/* Points (blue) */}
-      {points.map((p) => (
-        <CircleMarker
-          key={p.point_number}
-          center={[p.latitude, p.longitude]}
-          radius={6}
-          pathOptions={{
-            color: '#fff',
-            weight: 2,
-            fillColor: COLORS.point,
-            fillOpacity: 1,
+      {/* Points (blue, draggable) */}
+      {points.map((p, idx) => (
+        <Marker
+          key={idx}
+          position={[p.latitude, p.longitude]}
+          icon={numberIcon(p.point_number)}
+          draggable
+          eventHandlers={{
+            dragend: (e) => {
+              const m = e.target as L.Marker
+              const ll = m.getLatLng()
+              const ok = updatePointLatLng(idx, ll.lat, ll.lng)
+              if (!ok) {
+                // Outside Uzbekistan -> revert to the original position.
+                m.setLatLng([p.latitude, p.longitude])
+              }
+            },
           }}
         >
-          <Tooltip permanent direction="top" offset={[0, -6]}>
-            {p.point_number}
+          <Tooltip direction="top" offset={[0, -10]}>
+            #{p.point_number}
           </Tooltip>
           <Popup>
             <div className="text-xs">
@@ -240,7 +272,7 @@ export default function MapView() {
               {p.latitude.toFixed(6)}, {p.longitude.toFixed(6)}
             </div>
           </Popup>
-        </CircleMarker>
+        </Marker>
       ))}
 
       {/* polygonGeoJSON kept for downstream use; not separately rendered */}
@@ -248,5 +280,6 @@ export default function MapView() {
 
       <FitBounds />
     </MapContainer>
+    </>
   )
 }
