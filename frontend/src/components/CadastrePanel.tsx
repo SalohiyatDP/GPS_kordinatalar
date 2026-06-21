@@ -212,6 +212,7 @@ function UzkadSection() {
         loaded={uzkadGeoJSON !== null}
         count={count}
         onClear={clearLayer}
+        countSuffix={t('objectsLoaded')}
       />
       <button
         onClick={analyze}
@@ -227,6 +228,7 @@ function UzkadSection() {
           summary={uzkadSummary}
           idLabel={t('cadastralNumber')}
           reportLabel="Kadastr"
+          secondary="none"
         />
       )}
     </>
@@ -316,7 +318,7 @@ function NgisSection() {
 /* ------------------------------ Shared parts ------------------------------ */
 
 function UploadRow({
-  label, onUpload, fileRef, loading, loaded, count, onClear,
+  label, onUpload, fileRef, loading, loaded, count, onClear, countSuffix,
 }: {
   label: string
   onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void
@@ -325,6 +327,7 @@ function UploadRow({
   loaded: boolean
   count: number | null
   onClear: () => void
+  countSuffix?: string
 }) {
   const { t } = useStore()
   return (
@@ -356,7 +359,7 @@ function UploadRow({
       />
       {count !== null && (
         <p className="text-xs text-green-600">
-          {count.toLocaleString()} {t('featuresLoaded')}
+          {count.toLocaleString()} {countSuffix ?? t('featuresLoaded')}
         </p>
       )}
     </div>
@@ -378,10 +381,13 @@ function ResultsBlock({
   summary: string
   idLabel: string
   reportLabel: string
-  secondary?: 'location' | 'landType'
+  secondary?: 'location' | 'landType' | 'none'
 }) {
   const { t, points } = useStore()
   const [error, setError] = useState<string | null>(null)
+
+  const reportSecondary =
+    secondary === 'landType' ? 'landtype' : secondary === 'none' ? 'none' : 'location'
 
   async function report(format: string) {
     try {
@@ -392,7 +398,7 @@ function ResultsBlock({
         summary,
         format,
         reportLabel,
-        secondary === 'landType' ? 'landtype' : 'location',
+        reportSecondary,
       )
     } catch (err) {
       setError(getErrorMessage(err))
@@ -400,6 +406,7 @@ function ResultsBlock({
   }
 
   const landType = secondary === 'landType'
+  const location = secondary === 'location'
 
   return (
     <>
@@ -408,9 +415,8 @@ function ResultsBlock({
           <thead className="bg-gray-100 dark:bg-gray-700 sticky top-0">
             <tr>
               <th className="px-1.5 py-1 text-left">{idLabel}</th>
-              {landType ? (
-                <th className="px-1.5 py-1 text-left">{t('layerColumn')}</th>
-              ) : (
+              {landType && <th className="px-1.5 py-1 text-left">{t('layerColumn')}</th>}
+              {location && (
                 <>
                   <th className="px-1.5 py-1 text-left">{t('district')}</th>
                   <th className="px-1.5 py-1 text-left">{t('massif')}</th>
@@ -424,9 +430,8 @@ function ResultsBlock({
             {results.map((c, i) => (
               <tr key={i} className="border-t border-gray-100 dark:border-gray-700">
                 <td className="px-1.5 py-1 font-mono font-semibold">{c.code}</td>
-                {landType ? (
-                  <td className="px-1.5 py-1">{c.land_type ?? '-'}</td>
-                ) : (
+                {landType && <td className="px-1.5 py-1">{c.land_type ?? '-'}</td>}
+                {location && (
                   <>
                     <td className="px-1.5 py-1">{c.district ?? '-'}</td>
                     <td className="px-1.5 py-1">{c.massif ?? '-'}</td>

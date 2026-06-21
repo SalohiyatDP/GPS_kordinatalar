@@ -146,6 +146,20 @@ def analysis_to_xlsx(points: list[dict], area: dict, perimeter: dict,
                     _status_uz(c.get("status")),
                 ])
             widths = [18, 24, 14, 14, 12, 10]
+        elif secondary == "none":
+            c_headers = [id_label, "Maydon (ga)", "Kesishuv (ga)",
+                         "Qamrov %", "Holat"]
+            ws3.append(c_headers)
+            _style_header(ws3, len(c_headers))
+            for c in contours:
+                ws3.append([
+                    c.get("code") or c.get("contour"),
+                    _to_ha(c.get("contour_area")),
+                    _to_ha(c.get("intersection_area")),
+                    c.get("coverage_percent"),
+                    _status_uz(c.get("status")),
+                ])
+            widths = [24, 14, 14, 12, 10]
         else:
             c_headers = [id_label, "Viloyat", "Tuman", "Massiv", "MFY",
                          "Maydon (ga)", "Kesishuv (ga)", "Qamrov %", "Holat"]
@@ -394,6 +408,17 @@ def to_pdf(points: list[dict], area: dict, perimeter: dict,
                 cdata.append([
                     str(c.get("code") or c.get("contour", "")),
                     str(c.get("land_type") or ""),
+                    f"{_to_ha(c.get('contour_area')):,.4f}",
+                    f"{_to_ha(c.get('intersection_area')):,.4f}",
+                    f"{c.get('coverage_percent', 0):.1f}",
+                    _status_uz(c.get("status", "")),
+                ])
+        elif secondary == "none":
+            cdata = [[id_label, "Maydon (ga)", "Kesishuv (ga)",
+                      "Qamrov %", "Holat"]]
+            for c in contours:
+                cdata.append([
+                    str(c.get("code") or c.get("contour", "")),
                     f"{_to_ha(c.get('contour_area')):,.4f}",
                     f"{_to_ha(c.get('intersection_area')):,.4f}",
                     f"{c.get('coverage_percent', 0):.1f}",
