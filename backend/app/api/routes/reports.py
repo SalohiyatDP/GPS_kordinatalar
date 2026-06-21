@@ -43,7 +43,8 @@ def generate(req: ReportRequest):
 
     if fmt == "xlsx":
         data = exporters.analysis_to_xlsx(points, area, perimeter,
-                                          req.contours, req.summary, req.id_label)
+                                          req.contours, req.summary, req.id_label,
+                                          secondary=req.secondary)
         filename = "Analysis.xlsx"
     elif fmt == "pdf":
         map_png = None
@@ -55,7 +56,7 @@ def generate(req: ReportRequest):
                 map_png = None
         data = exporters.to_pdf(points, area, perimeter, req.contours,
                                 req.summary, title=req.name, map_image_png=map_png,
-                                id_label=req.id_label)
+                                id_label=req.id_label, secondary=req.secondary)
         filename = "Analysis.pdf"
     elif fmt == "kmz":
         data = exporters.analysis_to_kmz(points, req.contours)

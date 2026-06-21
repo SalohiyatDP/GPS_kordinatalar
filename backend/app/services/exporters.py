@@ -99,7 +99,8 @@ def points_to_xlsx(points: list[dict]) -> bytes:
 
 def analysis_to_xlsx(points: list[dict], area: dict, perimeter: dict,
                      contours: list[dict] | None = None,
-                     summary: str = "", id_label: str = "Kontur") -> bytes:
+                     summary: str = "", id_label: str = "Kontur",
+                     secondary: str = "location") -> bytes:
     """Analysis.xlsx — toʻliq kadastr hisobot kitobi (bir nechta varaq)."""
     wb = Workbook()
 
@@ -130,23 +131,40 @@ def analysis_to_xlsx(points: list[dict], area: dict, perimeter: dict,
 
     if contours:
         ws3 = wb.create_sheet("Tahlil")
-        c_headers = [id_label, "Viloyat", "Tuman", "Massiv", "MFY",
-                     "Maydon (ga)", "Kesishuv (ga)", "Qamrov %", "Holat"]
-        ws3.append(c_headers)
-        _style_header(ws3, len(c_headers))
-        for c in contours:
-            ws3.append([
-                c.get("code") or c.get("contour"),
-                c.get("region"),
-                c.get("district"),
-                c.get("massif"),
-                c.get("mfy"),
-                _to_ha(c.get("contour_area")),
-                _to_ha(c.get("intersection_area")),
-                c.get("coverage_percent"),
-                _status_uz(c.get("status")),
-            ])
-        for i, w in enumerate([16, 16, 16, 16, 16, 14, 14, 12, 10], start=1):
+        if secondary == "landtype":
+            c_headers = [id_label, "Qatlam", "Maydon (ga)", "Kesishuv (ga)",
+                         "Qamrov %", "Holat"]
+            ws3.append(c_headers)
+            _style_header(ws3, len(c_headers))
+            for c in contours:
+                ws3.append([
+                    c.get("code") or c.get("contour"),
+                    c.get("land_type"),
+                    _to_ha(c.get("contour_area")),
+                    _to_ha(c.get("intersection_area")),
+                    c.get("coverage_percent"),
+                    _status_uz(c.get("status")),
+                ])
+            widths = [18, 24, 14, 14, 12, 10]
+        else:
+            c_headers = [id_label, "Viloyat", "Tuman", "Massiv", "MFY",
+                         "Maydon (ga)", "Kesishuv (ga)", "Qamrov %", "Holat"]
+            ws3.append(c_headers)
+            _style_header(ws3, len(c_headers))
+            for c in contours:
+                ws3.append([
+                    c.get("code") or c.get("contour"),
+                    c.get("region"),
+                    c.get("district"),
+                    c.get("massif"),
+                    c.get("mfy"),
+                    _to_ha(c.get("contour_area")),
+                    _to_ha(c.get("intersection_area")),
+                    c.get("coverage_percent"),
+                    _status_uz(c.get("status")),
+                ])
+            widths = [16, 16, 16, 16, 16, 14, 14, 12, 10]
+        for i, w in enumerate(widths, start=1):
             ws3.column_dimensions[ws3.cell(row=1, column=i).column_letter].width = w
 
     return _wb_bytes(wb)
@@ -309,7 +327,8 @@ def to_geojson(points: list[dict], polygon_geojson: dict | None = None,
 def to_pdf(points: list[dict], area: dict, perimeter: dict,
            contours: list[dict] | None = None,
            summary: str = "", title: str = "Kadastr tahlil hisoboti",
-           map_image_png: bytes | None = None, id_label: str = "Kontur") -> bytes:
+           map_image_png: bytes | None = None, id_label: str = "Kontur",
+           secondary: str = "location") -> bytes:
     """Analysis.pdf — koordinatalar jadvali, maydon, perimetr, xarita va tahlil."""
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=1.5 * cm,
@@ -368,20 +387,33 @@ def to_pdf(points: list[dict], area: dict, perimeter: dict,
 
     if contours:
         elements.append(Paragraph("Tahlil natijalari", styles["Heading2"]))
-        cdata = [[id_label, "Viloyat", "Tuman", "Massiv", "MFY",
-                  "Maydon (ga)", "Kesishuv (ga)", "Qamrov %", "Holat"]]
-        for c in contours:
-            cdata.append([
-                str(c.get("code") or c.get("contour", "")),
-                str(c.get("region", "")),
-                str(c.get("district", "")),
-                str(c.get("massif", "")),
-                str(c.get("mfy", "")),
-                f"{_to_ha(c.get('contour_area')):,.4f}",
-                f"{_to_ha(c.get('intersection_area')):,.4f}",
-                f"{c.get('coverage_percent', 0):.1f}",
-                _status_uz(c.get("status", "")),
-            ])
+        if secondary == "landtype":
+            cdata = [[id_label, "Qatlam", "Maydon (ga)", "Kesishuv (ga)",
+                      "Qamrov %", "Holat"]]
+            for c in contours:
+                cdata.append([
+                    str(c.get("code") or c.get("contour", "")),
+                    str(c.get("land_type") or ""),
+                    f"{_to_ha(c.get('contour_area')):,.4f}",
+                    f"{_to_ha(c.get('intersection_area')):,.4f}",
+                    f"{c.get('coverage_percent', 0):.1f}",
+                    _status_uz(c.get("status", "")),
+                ])
+        else:
+            cdata = [[id_label, "Viloyat", "Tuman", "Massiv", "MFY",
+                      "Maydon (ga)", "Kesishuv (ga)", "Qamrov %", "Holat"]]
+            for c in contours:
+                cdata.append([
+                    str(c.get("code") or c.get("contour", "")),
+                    str(c.get("region", "")),
+                    str(c.get("district", "")),
+                    str(c.get("massif", "")),
+                    str(c.get("mfy", "")),
+                    f"{_to_ha(c.get('contour_area')):,.4f}",
+                    f"{_to_ha(c.get('intersection_area')):,.4f}",
+                    f"{c.get('coverage_percent', 0):.1f}",
+                    _status_uz(c.get("status", "")),
+                ])
         ctable = Table(cdata, hAlign="LEFT")
         ctable.setStyle(_table_style())
         elements.append(ctable)

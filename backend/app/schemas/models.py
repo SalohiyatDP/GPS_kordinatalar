@@ -71,6 +71,7 @@ class ReportRequest(BaseModel):
     format: str = Field("pdf", description="xlsx|pdf|kmz|geojson")
     map_image_base64: str | None = None
     id_label: str = Field("Kontur", description="Tahlil ustuni sarlavhasi: Kontur yoki Kadastr")
+    secondary: str = Field("location", description="Yon ustunlar: location (Viloyat/Tuman/...) yoki landtype (Qatlam)")
 
 
 class ProjectCreate(BaseModel):

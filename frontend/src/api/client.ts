@@ -127,6 +127,7 @@ export async function generateReport(
   summary: string,
   format: string,
   idLabel = 'Kontur',
+  secondary: 'location' | 'landtype' = 'location',
   mapImageBase64?: string,
 ): Promise<void> {
   const resp = await api.post(
@@ -138,6 +139,7 @@ export async function generateReport(
       summary,
       format,
       id_label: idLabel,
+      secondary,
       map_image_base64: mapImageBase64,
     },
     { responseType: 'blob' },

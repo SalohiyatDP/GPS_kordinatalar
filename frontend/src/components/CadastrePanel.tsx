@@ -392,6 +392,7 @@ function ResultsBlock({
         summary,
         format,
         reportLabel,
+        secondary === 'landType' ? 'landtype' : 'location',
       )
     } catch (err) {
       setError(getErrorMessage(err))
