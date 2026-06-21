@@ -24,3 +24,6 @@ dist/
 # Uploads / temp
 uploads/
 tmp/
+
+# TS build info
+*.tsbuildinfo
