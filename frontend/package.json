@@ -10,8 +10,10 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@react-leaflet/core": "^3.0.0",
     "@tanstack/react-query": "^5.62.7",
     "axios": "^1.7.9",
+    "esri-leaflet": "^3.0.19",
     "leaflet": "^1.9.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -19,8 +21,8 @@
     "zustand": "^5.0.2"
   },
   "devDependencies": {
-    "@types/leaflet": "^1.9.15",
     "@types/geojson": "^7946.0.15",
+    "@types/leaflet": "^1.9.15",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
     "@vitejs/plugin-react": "^4.3.4",

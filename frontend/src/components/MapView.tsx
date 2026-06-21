@@ -13,6 +13,16 @@ import {
 } from 'react-leaflet'
 import L from 'leaflet'
 import { useStore } from '../store'
+import { NgisFeatureLayer } from './NgisLayer'
+
+// NGIS (open.ngis.uz) UZKAD cadastral FeatureServer endpoints.
+const NGIS_LAYERS: { key: string; url: string; color: string }[] = [
+  {
+    key: 'NOTURAR yerlar',
+    url: 'https://db.ngis.uz/db/rest/services/UZKAD/NOTURAR_UZKAD_DB16/FeatureServer/0',
+    color: '#ff7800',
+  },
+]
 
 const COLORS = {
   point: '#1d4ed8', // blue
@@ -143,6 +153,13 @@ export default function MapView() {
             maxZoom={21}
           />
         </LayersControl.BaseLayer>
+
+        {/* NGIS (open.ngis.uz) UZKAD cadastral layers */}
+        {NGIS_LAYERS.map((lyr) => (
+          <LayersControl.Overlay key={lyr.key} name={`NGIS: ${lyr.key}`}>
+            <NgisFeatureLayer url={lyr.url} color={lyr.color} />
+          </LayersControl.Overlay>
+        ))}
 
         {/* Contour layer (uploaded) */}
         {layerGeoJSON && (
