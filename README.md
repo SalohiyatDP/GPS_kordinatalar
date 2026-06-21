@@ -42,6 +42,9 @@ Misol xulosa: *“Poligon quyidagilar bilan kesishadi: 145, 146q, 147, 148q.”*
 
 ## 🚀 Tez ishga tushirish (Docker)
 
+> Avval [Docker Desktop](https://www.docker.com/products/docker-desktop/) ni
+> oʻrnating va ishga tushiring (Docker xizmati ishlab turishi kerak).
+
 ```bash
 docker compose up --build
 ```
