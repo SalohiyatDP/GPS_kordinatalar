@@ -14,20 +14,7 @@ import {
 import L from 'leaflet'
 import { useStore } from '../store'
 import { NgisFeatureLayer } from './NgisLayer'
-
-// NGIS (open.ngis.uz) UZKAD cadastral FeatureServer endpoints (region DB16).
-const NGIS_BASE = 'https://db.ngis.uz/db/rest/services/UZKAD'
-const NGIS_LAYERS: { key: string; url: string; color: string }[] = [
-  { key: 'Turar-joy yerlar', service: 'TURAR_UZKAD_DB16', color: '#eab308' },
-  { key: 'Noturar yerlar', service: 'NOTURAR_UZKAD_DB16', color: '#f97316' },
-  { key: 'Qishloq xoʻjaligi yerlar', service: 'AGR_ONLY_UZKAD_DB16', color: '#84cc16' },
-  { key: 'Oʻrmon yerlar', service: 'FOREST_UZKAD_DB16', color: '#15803d' },
-  { key: 'Suv yerlar', service: 'WATER_UZKAD_DB16', color: '#0ea5e9' },
-  { key: 'Avtoyoʻl yerlar', service: 'AVTOYUL_UZKAD_DB16', color: '#78716c' },
-  { key: 'Davlat zaxira yerlar', service: 'DZY_UZKAD_DB16', color: '#a855f7' },
-  { key: 'Muhofaza yerlar', service: 'MUHOFAZA_UZKAD_DB16', color: '#14b8a6' },
-  { key: 'Mahalla', service: 'MAHALLA_UZKAD_DB16', color: '#ec4899' },
-].map((l) => ({ key: l.key, color: l.color, url: `${NGIS_BASE}/${l.service}/FeatureServer/0` }))
+import { NGIS_LAYERS } from '../data/ngisLayers'
 
 const COLORS = {
   point: '#1d4ed8', // blue
@@ -89,7 +76,7 @@ function MapClickHandler({
 export default function MapView() {
   const { points, polygonGeoJSON, layerGeoJSON, contours, theme,
     uzkadGeoJSON, uzkadResults, t, mapPickMode, addPointLatLng,
-    updatePointLatLng, notice, setNotice } = useStore()
+    updatePointLatLng, notice, setNotice, ngisResults } = useStore()
 
   const polygonLatLngs = useMemo(
     () => points.map((p) => [p.latitude, p.longitude] as [number, number]),
@@ -229,6 +216,40 @@ export default function MapView() {
                 {
                   type: 'FeatureCollection',
                   features: uzkadResults
+                    .filter((c) => c.geometry)
+                    .map((c) => ({
+                      type: 'Feature' as const,
+                      geometry: c.geometry as GeoJSON.Geometry,
+                      properties: { code: c.code, status: c.status },
+                    })),
+                } as GeoJSON.FeatureCollection
+              }
+              style={(f) => {
+                const st = f?.properties?.status
+                const color =
+                  st === 'Full' ? COLORS.full
+                    : st === 'Vacant' ? COLORS.vacant
+                      : COLORS.partial
+                return { color, weight: 2, fillColor: color, fillOpacity: 0.45 }
+              }}
+              onEachFeature={(f, layer) => {
+                layer.bindTooltip(String(f.properties?.code ?? ''), {
+                  permanent: false,
+                })
+              }}
+            />
+          </LayersControl.Overlay>
+        )}
+
+        {/* NGIS live analysis results */}
+        {ngisResults.length > 0 && (
+          <LayersControl.Overlay checked name="NGIS natija">
+            <GeoJSON
+              key={JSON.stringify(ngisResults.map((c) => c.code + c.status))}
+              data={
+                {
+                  type: 'FeatureCollection',
+                  features: ngisResults
                     .filter((c) => c.geometry)
                     .map((c) => ({
                       type: 'Feature' as const,

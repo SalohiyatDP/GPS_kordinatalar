@@ -67,6 +67,12 @@ interface AppState {
   setUzkadAnalysis: (results: ContourResult[], summary: string) => void
   clearUzkadLayer: () => void
 
+  // cadastre — NGIS live analysis results
+  ngisResults: ContourResult[]
+  ngisSummary: string
+  setNgisAnalysis: (results: ContourResult[], summary: string) => void
+  clearNgis: () => void
+
   // reset
   clearAll: () => void
 }
@@ -186,6 +192,12 @@ export const useStore = create<AppState>((set, get) => ({
   clearUzkadLayer: () =>
     set({ uzkadLayerId: null, uzkadGeoJSON: null, uzkadResults: [], uzkadSummary: '' }),
 
+  ngisResults: [],
+  ngisSummary: '',
+  setNgisAnalysis: (results, summary) =>
+    set({ ngisResults: results, ngisSummary: summary }),
+  clearNgis: () => set({ ngisResults: [], ngisSummary: '' }),
+
   clearAll: () =>
     set({
       points: [],
@@ -199,6 +211,8 @@ export const useStore = create<AppState>((set, get) => ({
       summary: '',
       uzkadResults: [],
       uzkadSummary: '',
+      ngisResults: [],
+      ngisSummary: '',
     }),
 }))
 

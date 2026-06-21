@@ -85,6 +85,18 @@ export async function analyzeUzkad(
   return data
 }
 
+export async function analyzeNgis(
+  points: PointInput[],
+  services: string[],
+): Promise<PolygonAnalysis> {
+  const { data } = await api.post('/cadastre/analyze-ngis', {
+    points,
+    services,
+    include_geometry: true,
+  })
+  return data
+}
+
 export async function deleteLayer(layerId: string): Promise<void> {
   await api.delete(`/cadastre/layer/${layerId}`)
 }

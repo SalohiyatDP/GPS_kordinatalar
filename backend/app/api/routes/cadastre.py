@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
+import httpx
 from pydantic import BaseModel
 
 from app.api import store
 from app.services import cadastre
 from app.services import geometry as geo
+from app.services import ngis
 
 router = APIRouter(prefix="/api/cadastre", tags=["cadastre"])
 
@@ -20,6 +22,12 @@ class PointPair(BaseModel):
 class AnalyzeRequest(BaseModel):
     layer_id: str
     points: list[PointPair]
+    include_geometry: bool = True
+
+
+class NgisAnalyzeRequest(BaseModel):
+    points: list[PointPair]
+    services: list[str]
     include_geometry: bool = True
 
 
@@ -80,6 +88,26 @@ def analyze_uzkad(req: AnalyzeRequest):
     analysis = cadastre.analyze_polygon(
         layer, polygon, include_geometry=req.include_geometry,
         id_field="cadastral", append_q=False, compute_vacant=True)
+    return analysis.to_dict()
+
+
+@router.post("/analyze-ngis")
+def analyze_ngis(req: NgisAnalyzeRequest):
+    """Analyze polygon intersection against live NGIS (open.ngis.uz) layers."""
+    if len(req.points) < 3:
+        raise HTTPException(status_code=400, detail="Kamida 3 ta nuqta kerak.")
+    if not req.services:
+        raise HTTPException(status_code=400,
+                            detail="Kamida bitta NGIS qatlamini tanlang.")
+    pts = [(p.latitude, p.longitude) for p in req.points]
+    try:
+        analysis = ngis.analyze_ngis(pts, req.services,
+                                     include_geometry=req.include_geometry)
+    except httpx.HTTPError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"NGIS xizmatiga ulanib boʻlmadi (faqat Oʻzbekistondan "
+                   f"ochiladi): {exc}")
     return analysis.to_dict()
 
 
