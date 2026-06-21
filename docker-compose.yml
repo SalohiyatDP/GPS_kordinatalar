@@ -1,7 +1,6 @@
 services:
   backend:
     build: ./backend
-    container_name: cadastre-backend
     environment:
       APP_DATABASE_URL: "sqlite:////data/cadastre.db"
     volumes:
@@ -12,7 +11,6 @@ services:
 
   frontend:
     build: ./frontend
-    container_name: cadastre-frontend
     depends_on:
       - backend
     ports:
