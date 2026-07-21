@@ -38,9 +38,13 @@ export default function ResultsPanel() {
     }
   }
 
-  async function doExport(format: string, kind: 'points' | 'polygon') {
+  async function doExport(
+    format: string,
+    kind: 'points' | 'polygon',
+    epsg?: number,
+  ) {
     try {
-      await downloadExport(pointInputs, format, kind)
+      await downloadExport(pointInputs, format, kind, epsg)
     } catch (e) {
       setError(getErrorMessage(e))
     }
@@ -86,15 +90,42 @@ export default function ResultsPanel() {
           <ExportBtn label="PDF" onClick={() => doExport('pdf', 'polygon')} />
         </div>
       </div>
+
+      <div>
+        <h3 className="text-xs font-semibold mb-1 text-gray-700 dark:text-gray-200">
+          {t('shapefiles')}
+        </h3>
+        <div className="grid grid-cols-1 gap-1.5">
+          <ExportBtn
+            label={t('shapePulkovo')}
+            disabled={points.length < 3}
+            onClick={() => doExport('shp', 'polygon', 28472)}
+          />
+          <ExportBtn
+            label={t('shapeWebMercator')}
+            disabled={points.length < 3}
+            onClick={() => doExport('shp', 'polygon', 3857)}
+          />
+        </div>
+      </div>
     </div>
   )
 }
 
-function ExportBtn({ label, onClick }: { label: string; onClick: () => void }) {
+function ExportBtn({
+  label,
+  onClick,
+  disabled = false,
+}: {
+  label: string
+  onClick: () => void
+  disabled?: boolean
+}) {
   return (
     <button
       onClick={onClick}
-      className="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 hover:bg-brand hover:text-white transition-colors"
+      disabled={disabled}
+      className="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 hover:bg-brand hover:text-white transition-colors disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-inherit"
     >
       {label}
     </button>

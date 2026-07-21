@@ -45,10 +45,11 @@ export async function downloadExport(
   points: PointInput[],
   format: string,
   kind: 'points' | 'polygon',
+  epsg?: number,
 ): Promise<void> {
   const resp = await api.post(
     '/geometry/export',
-    { points, format, kind },
+    { points, format, kind, epsg },
     { responseType: 'blob' },
   )
   triggerDownload(resp.data, resp.headers['content-disposition'])

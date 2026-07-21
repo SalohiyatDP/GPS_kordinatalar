@@ -9,6 +9,7 @@ from __future__ import annotations
 import io
 import json
 import os
+import tempfile
 import zipfile
 from datetime import datetime
 
@@ -332,6 +333,48 @@ def to_geojson(points: list[dict], polygon_geojson: dict | None = None,
                 })
     fc = {"type": "FeatureCollection", "features": features}
     return json.dumps(fc, ensure_ascii=False, indent=2).encode("utf-8")
+
+
+# ---------------------------------------------------------------------------
+# Shapefile (.zip) — reprojected to a target CRS
+# ---------------------------------------------------------------------------
+
+def polygon_to_shapefile_zip(points: list[dict], epsg: int,
+                             layer_name: str = "polygon") -> bytes:
+    """Build a polygon from (lat/lon) points and export it as a zipped ESRI
+    Shapefile reprojected to the given ``epsg`` coordinate system.
+
+    The returned bytes contain a ``.zip`` archive with all shapefile sidecar
+    files (.shp, .shx, .dbf, .prj, .cpg). Source coordinates are WGS84
+    (EPSG:4326); geometry is reprojected to the requested CRS before writing.
+    """
+    # Imported lazily so the rest of the export module works even if the heavy
+    # GIS stack (geopandas) is unavailable in a given environment.
+    import geopandas as gpd
+    from shapely.geometry import Polygon
+
+    ring = [(p["longitude"], p["latitude"]) for p in points]
+    if ring and ring[0] != ring[-1]:
+        ring.append(ring[0])
+    if len(ring) < 4:
+        raise ValueError("A polygon requires at least 3 points.")
+
+    polygon = Polygon(ring)
+    gdf = gpd.GeoDataFrame(
+        {"id": [1], "name": [layer_name]},
+        geometry=[polygon],
+        crs="EPSG:4326",
+    )
+    gdf = gdf.to_crs(epsg=epsg)
+
+    buf = io.BytesIO()
+    with tempfile.TemporaryDirectory() as tmp:
+        shp_path = os.path.join(tmp, f"{layer_name}.shp")
+        gdf.to_file(shp_path, driver="ESRI Shapefile", encoding="utf-8")
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            for fname in sorted(os.listdir(tmp)):
+                zf.write(os.path.join(tmp, fname), arcname=fname)
+    return buf.getvalue()
 
 
 # ---------------------------------------------------------------------------
