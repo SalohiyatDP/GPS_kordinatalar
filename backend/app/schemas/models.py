@@ -45,8 +45,10 @@ class GeometryResponse(BaseModel):
 
 class ExportRequest(BaseModel):
     points: list[PointInput]
-    format: str = Field("xlsx", description="xlsx|kmz|kml|geojson|pdf")
+    format: str = Field("xlsx", description="xlsx|kmz|kml|geojson|pdf|shp")
     kind: str = Field("points", description="points|polygon")
+    epsg: int | None = Field(
+        None, description="Target CRS for shapefile export, e.g. 28472 or 3857")
 
 
 class ContourEntry(BaseModel):
