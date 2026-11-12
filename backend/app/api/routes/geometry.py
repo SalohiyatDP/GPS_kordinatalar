@@ -18,6 +18,13 @@ _MEDIA = {
     "kml": "application/vnd.google-earth.kml+xml",
     "geojson": "application/geo+json",
     "pdf": "application/pdf",
+    "shp": "application/zip",
+}
+
+# Human-readable CRS names for shapefile filenames.
+_CRS_NAMES = {
+    28472: "Pulkovo1942_GK_Zone12N",
+    3857: "WebMercator",
 }
 
 
@@ -77,6 +84,19 @@ def export(req: ExportRequest):
         perimeter = geo.calculate_perimeter(polygon).to_dict()
         data = exporters.to_pdf(points, area, perimeter, title="Koordinatalar hisoboti")
         filename = "report.pdf"
+    elif fmt == "shp":
+        if len(points) < 3:
+            raise HTTPException(status_code=400, detail="Need at least 3 points.")
+        epsg = req.epsg or 4326
+        crs_name = _CRS_NAMES.get(epsg, f"EPSG{epsg}")
+        layer_name = f"polygon_{crs_name}"
+        try:
+            data = exporters.polygon_to_shapefile_zip(points, epsg, layer_name)
+        except Exception as exc:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Shapefile export failed for EPSG:{epsg}: {exc}")
+        filename = f"{layer_name}.zip"
     else:  # pragma: no cover
         raise HTTPException(status_code=400, detail="Unsupported format")
 

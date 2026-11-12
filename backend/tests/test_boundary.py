@@ -37,3 +37,30 @@ def test_all_inside_no_removal():
     data = r.json()
     assert data["count"] == 2
     assert data["outside_territory"] == 0
+
+
+def _eastmost_vertex():
+    """Return (lon, lat) of the easternmost vertex of the original boundary."""
+    import json
+    import os
+
+    from shapely.geometry import shape
+
+    path = os.path.join(os.path.dirname(boundary.__file__), "..", "assets",
+                        "uzbekistan.geojson")
+    with open(path, encoding="utf-8") as fh:
+        geom = shape(json.load(fh)["geometry"]).buffer(0)
+    return max(geom.exterior.coords, key=lambda p: p[0])
+
+
+def _shift_east_km(lon, lat, km):
+    import math
+    return lon + km / (111.32 * math.cos(math.radians(lat))), lat
+
+
+def test_border_tolerance_accepts_points_within_3km():
+    lon, lat = _eastmost_vertex()
+    # 1 km east of the easternmost border point: just across the border.
+    assert boundary.is_in_uzbekistan(*reversed(_shift_east_km(lon, lat, 1.0)))
+    # 10 km east: well beyond the tolerance.
+    assert not boundary.is_in_uzbekistan(*reversed(_shift_east_km(lon, lat, 10.0)))

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import csv
 import io
+import re
+import zipfile
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
@@ -68,12 +70,16 @@ async def normalize(req: NormalizeRequest):
 
 @router.post("/upload", response_model=NormalizeResponse)
 async def upload_file(file: UploadFile = File(...)):
-    """Normalize coordinates from an uploaded TXT / CSV / XLSX file."""
+    """Normalize coordinates from an uploaded TXT / CSV / XLSX / KML / KMZ file."""
     raw = await file.read()
     name = (file.filename or "").lower()
 
     if name.endswith(".xlsx") or name.endswith(".xls"):
         text = _xlsx_to_text(raw)
+    elif name.endswith(".kmz"):
+        text = _kmz_to_text(raw)
+    elif name.endswith(".kml"):
+        text = _kml_to_text(raw)
     else:
         text = raw.decode("utf-8", errors="replace")
         # Normalize CSV delimiters to a parser-friendly form.
@@ -93,6 +99,44 @@ def _csv_to_text(text: str) -> str:
     for row in reader:
         out_lines.append(" ".join(cell.strip() for cell in row if cell.strip()))
     return "\n".join(out_lines)
+
+
+_COORDINATES_RE = re.compile(
+    r"<coordinates[^>]*>(.*?)</coordinates>", re.DOTALL | re.IGNORECASE)
+
+
+def _kmz_to_text(raw: bytes) -> str:
+    """Extract the embedded KML from a KMZ archive and parse its coordinates."""
+    try:
+        with zipfile.ZipFile(io.BytesIO(raw)) as zf:
+            kml_name = next(
+                (n for n in zf.namelist() if n.lower().endswith(".kml")), None)
+            if kml_name is None:
+                raise HTTPException(
+                    status_code=422,
+                    detail="KMZ ichida .kml fayl topilmadi")
+            kml_bytes = zf.read(kml_name)
+    except zipfile.BadZipFile:
+        raise HTTPException(status_code=422, detail="Yaroqsiz KMZ fayl")
+    return _kml_to_text(kml_bytes)
+
+
+def _kml_to_text(raw: bytes | str) -> str:
+    """Convert KML ``<coordinates>`` blocks into ``lat lon`` lines.
+
+    KML stores coordinate tuples as ``lon,lat[,alt]`` separated by whitespace.
+    We emit ``lat lon`` per line so the normalizer (which assumes lat/lon order
+    when no hemisphere marker is present) reads them correctly.
+    """
+    text = raw.decode("utf-8", errors="replace") if isinstance(raw, bytes) else raw
+    lines: list[str] = []
+    for block in _COORDINATES_RE.findall(text):
+        for tuple_str in block.split():
+            parts = tuple_str.strip().split(",")
+            if len(parts) >= 2 and parts[0] and parts[1]:
+                lon, lat = parts[0], parts[1]
+                lines.append(f"{lat} {lon}")
+    return "\n".join(lines)
 
 
 def _xlsx_to_text(raw: bytes) -> str:

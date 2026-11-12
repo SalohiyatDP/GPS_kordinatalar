@@ -122,7 +122,7 @@ export default function CoordinateInput() {
             <input
               ref={fileRef}
               type="file"
-              accept=".txt,.csv,.xlsx,.xls"
+              accept=".txt,.csv,.xlsx,.xls,.kmz,.kml"
               className="hidden"
               onChange={handleFile}
             />
