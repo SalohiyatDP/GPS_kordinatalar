@@ -1,5 +1,6 @@
-// Point-in-Uzbekistan check using a bundled, simplified national boundary.
-import uz from '../assets/uzbekistan.json'
+// Point-in-Uzbekistan check using a bundled, simplified national boundary
+// expanded by 3 km (same geometry as the backend, see uzbekistan_buffered.json).
+import uz from '../assets/uzbekistan_buffered.json'
 
 type Ring = number[][] // [[lon, lat], ...]
 

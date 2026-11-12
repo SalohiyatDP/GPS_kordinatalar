@@ -1,9 +1,12 @@
 """Uzbekistan territory boundary check.
 
 Coordinates outside the national territory are rejected on input. A simplified
-WGS84 polygon of Uzbekistan is bundled in ``app/assets/uzbekistan.geojson`` and
-queried with a prepared Shapely geometry for fast repeated point-in-polygon
-tests.
+WGS84 polygon of Uzbekistan, expanded outward by ``BUFFER_M`` metres (3 km) so
+that points just across the border are still accepted, is bundled in
+``app/assets/uzbekistan_buffered.geojson`` and queried with a prepared Shapely
+geometry for fast repeated point-in-polygon tests. The buffered file is generated
+by ``scripts/build_buffered_boundary.py``; the frontend uses the same geometry in
+``frontend/src/assets/uzbekistan_buffered.json``.
 """
 
 from __future__ import annotations
@@ -15,7 +18,10 @@ from functools import lru_cache
 from shapely.geometry import Point, shape
 from shapely.prepared import prep
 
-_PATH = os.path.join(os.path.dirname(__file__), "..", "assets", "uzbekistan.geojson")
+# Border tolerance: points up to BUFFER_M outside the national boundary are accepted.
+BUFFER_M = 3000.0
+
+_PATH = os.path.join(os.path.dirname(__file__), "..", "assets", "uzbekistan_buffered.geojson")
 
 OUTSIDE_MESSAGE = "Oʻzbekiston hududidan tashqarida"
 
